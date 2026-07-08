@@ -1,0 +1,21 @@
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+*.suo
+*.log
+
+# Local/sensitive configuration
+Program.cs
+appsettings*.json
+secrets.json
+.env
+.env.*
+
+# Certificates and private keys
+*.pfx
+*.pem
+*.key
+*.crt
+*.cer
