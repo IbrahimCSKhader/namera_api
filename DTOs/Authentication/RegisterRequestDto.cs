@@ -12,6 +12,14 @@ public sealed class RegisterRequestDto
     [MaxLength(100, ErrorMessage = "الاسم الأخير طويل جداً")]
     public string LastName { get; init; } = string.Empty;
 
+    [Required(ErrorMessage = "اسم المستخدم مطلوب")]
+    [RegularExpression("^[a-zA-Z0-9_.-]{3,50}$", ErrorMessage = "اسم المستخدم يجب أن يكون 3 أحرف على الأقل ويحتوي أحرفاً أو أرقاماً فقط")]
+    public string UserName { get; init; } = string.Empty;
+
+    [EmailAddress(ErrorMessage = "البريد الإلكتروني غير صالح")]
+    [MaxLength(256, ErrorMessage = "البريد الإلكتروني طويل جداً")]
+    public string? Email { get; init; }
+
     [Required(ErrorMessage = "رقم الهاتف مطلوب")]
     [Phone(ErrorMessage = "رقم الهاتف غير صالح")]
     [MaxLength(20, ErrorMessage = "رقم الهاتف طويل جداً")]

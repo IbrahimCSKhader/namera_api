@@ -1,11 +1,11 @@
-# Namira API
+# Handmade Resin Gifts API
 
-Backend foundation for the Namira project.
+ASP.NET Core Web API for an Arabic handmade gifts store.
 
-This project is an ASP.NET Core Web API prepared for:
+## Features
 
 - Customer registration
-- Phone-number login
+- Login with phone number, email, or username
 - JWT authentication
 - Current user endpoint
 - Customer profile read/update
@@ -19,21 +19,6 @@ This project is an ASP.NET Core Web API prepared for:
 - ASP.NET Core Identity
 - JWT Bearer Authentication
 
-## Project Structure
-
-The project is organized by topic inside each main folder:
-
-- `Controllers/Authentication`
-- `Controllers/Customer`
-- `Services/Authentication`
-- `Services/Customer`
-- `Services/Token`
-- `DTOs/Authentication`
-- `DTOs/Customer`
-- `Models/Identity`
-- `Data/Seed`
-- `Extensions/ServiceCollection`
-
 ## Local Setup
 
 Restore packages:
@@ -41,8 +26,6 @@ Restore packages:
 ```powershell
 dotnet restore
 ```
-
-Create your local configuration files as needed. Sensitive configuration files are intentionally ignored by Git.
 
 Required local settings:
 
@@ -71,15 +54,3 @@ dotnet ef database update
 ## Security Notes
 
 Do not commit real database credentials, JWT secrets, certificates, private keys, or local environment files.
-
-Ignored local files include:
-
-- `Program.cs`
-- `appsettings*.json`
-- `.env`
-- `.env.*`
-- `*.pfx`
-- `*.pem`
-- `*.key`
-- `*.crt`
-- `*.cer`

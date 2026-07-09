@@ -32,7 +32,21 @@ public sealed class AuthService : IAuthService
             return ApiResponse<AuthResponseDto>.Fail("كلمة المرور غير متطابقة", ["كلمة المرور وتأكيدها يجب أن يكونا متطابقين"]);
         }
 
-        if (await PhoneNumberExistsAsync(request.PhoneNumber))
+        var userName = request.UserName.Trim();
+        var email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim();
+        var phoneNumber = request.PhoneNumber.Trim();
+
+        if (await _userManager.FindByNameAsync(userName) is not null)
+        {
+            return ApiResponse<AuthResponseDto>.Fail("اسم المستخدم مستخدم مسبقاً", ["اختر اسم مستخدم آخر"]);
+        }
+
+        if (email is not null && await _userManager.FindByEmailAsync(email) is not null)
+        {
+            return ApiResponse<AuthResponseDto>.Fail("البريد الإلكتروني مستخدم مسبقاً", ["يوجد حساب مسجل بهذا البريد"]);
+        }
+
+        if (await PhoneNumberExistsAsync(phoneNumber))
         {
             return ApiResponse<AuthResponseDto>.Fail("رقم الهاتف مستخدم مسبقاً", ["يوجد حساب مسجل بهذا الرقم"]);
         }
@@ -42,8 +56,10 @@ public sealed class AuthService : IAuthService
             FirstName = request.FirstName.Trim(),
             LastName = request.LastName.Trim(),
             Address = request.Address.Trim(),
-            UserName = request.PhoneNumber.Trim(),
-            PhoneNumber = request.PhoneNumber.Trim(),
+            UserName = userName,
+            Email = email,
+            EmailConfirmed = email is not null,
+            PhoneNumber = phoneNumber,
             PhoneNumberConfirmed = true,
             IsActive = true
         };
@@ -68,19 +84,19 @@ public sealed class AuthService : IAuthService
 
     public async Task<ApiResponse<AuthResponseDto>> LoginAsync(LoginRequestDto request)
     {
-        var phoneNumber = request.PhoneNumber.Trim();
-        var user = await _userManager.Users.FirstOrDefaultAsync(item => item.PhoneNumber == phoneNumber);
+        var identifier = request.Identifier.Trim();
+        var user = await FindUserByIdentifierAsync(identifier);
 
         if (user is null || !user.IsActive)
         {
-            return ApiResponse<AuthResponseDto>.Fail("بيانات الدخول غير صحيحة", ["رقم الهاتف أو كلمة المرور غير صحيحة"]);
+            return InvalidLoginResponse();
         }
 
         var signInResult = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: false);
 
         if (!signInResult.Succeeded)
         {
-            return ApiResponse<AuthResponseDto>.Fail("بيانات الدخول غير صحيحة", ["رقم الهاتف أو كلمة المرور غير صحيحة"]);
+            return InvalidLoginResponse();
         }
 
         var roles = await _userManager.GetRolesAsync(user);
@@ -112,15 +128,30 @@ public sealed class AuthService : IAuthService
             Id = user.Id,
             FirstName = user.FirstName,
             LastName = user.LastName,
+            UserName = user.UserName ?? string.Empty,
+            Email = user.Email ?? string.Empty,
             PhoneNumber = user.PhoneNumber ?? string.Empty,
             Address = user.Address,
             Role = roles.FirstOrDefault() ?? string.Empty
         });
     }
 
+    private async Task<ApplicationUser?> FindUserByIdentifierAsync(string identifier)
+    {
+        return await _userManager.FindByNameAsync(identifier)
+            ?? await _userManager.FindByEmailAsync(identifier)
+            ?? await _userManager.Users.FirstOrDefaultAsync(user => user.PhoneNumber == identifier);
+    }
+
     private Task<bool> PhoneNumberExistsAsync(string phoneNumber)
     {
-        var normalizedPhoneNumber = phoneNumber.Trim();
-        return _userManager.Users.AnyAsync(user => user.PhoneNumber == normalizedPhoneNumber);
+        return _userManager.Users.AnyAsync(user => user.PhoneNumber == phoneNumber);
+    }
+
+    private static ApiResponse<AuthResponseDto> InvalidLoginResponse()
+    {
+        return ApiResponse<AuthResponseDto>.Fail(
+            "بيانات الدخول غير صحيحة",
+            ["رقم الهاتف أو البريد الإلكتروني أو اسم المستخدم أو كلمة المرور غير صحيحة"]);
     }
 }
