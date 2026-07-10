@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using namera_API.Models.Identity;
+using namera_API.Models.Products.Categories;
+using namera_API.Models.Products.Products;
 
 namespace namera_API.Data;
 
@@ -11,9 +13,14 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     {
     }
 
+    public DbSet<ProductCategory> ProductCategories => Set<ProductCategory>();
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<ProductImage> ProductImages => Set<ProductImage>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
         builder.Entity<ApplicationUser>(entity =>
         {
