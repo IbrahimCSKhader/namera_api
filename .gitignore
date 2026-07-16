@@ -12,6 +12,7 @@ appsettings*.json
 secrets.json
 .env
 .env.*
+Properties/PublishProfiles/
 
 # Certificates and private keys
 *.pfx
