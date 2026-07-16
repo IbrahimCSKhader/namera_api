@@ -6,5 +6,6 @@ namespace namera_API.Services.Products;
 public interface IProductService
 {
     Task<ApiResponse<IReadOnlyList<ProductResponseDto>>> GetProductsAsync();
+    Task<ApiResponse<ProductResponseDto>> GetProductAsync(string slug);
     Task<ApiResponse<IReadOnlyList<ProductCategoryResponseDto>>> GetCategoriesAsync();
 }

@@ -22,6 +22,13 @@ public sealed class ProductsController : ControllerBase
         return Ok(await _productService.GetProductsAsync());
     }
 
+    [HttpGet("{slug}")]
+    public async Task<ActionResult<ApiResponse<ProductResponseDto>>> GetProduct(string slug)
+    {
+        var response = await _productService.GetProductAsync(slug);
+        return response.Success ? Ok(response) : NotFound(response);
+    }
+
     [HttpGet("categories")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ProductCategoryResponseDto>>>> GetCategories()
     {

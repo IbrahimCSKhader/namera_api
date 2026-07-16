@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using namera_API.Data;
 
@@ -11,9 +12,11 @@ using namera_API.Data;
 namespace namera_API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260716163813_AddDynamicProductManagement")]
+    partial class AddDynamicProductManagement
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -312,14 +315,10 @@ namespace namera_API.Migrations
                         .HasColumnType("bit");
 
                     b.Property<bool>("AllowOrdering")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
+                        .HasColumnType("bit");
 
                     b.Property<bool>("AllowRatings")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
+                        .HasColumnType("bit");
 
                     b.Property<decimal>("BasePrice")
                         .HasColumnType("decimal(18,2)");
@@ -332,10 +331,8 @@ namespace namera_API.Migrations
 
                     b.Property<string>("Currency")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
-                        .HasDefaultValue("ILS");
+                        .HasColumnType("nvarchar(12)");
 
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
@@ -350,9 +347,7 @@ namespace namera_API.Migrations
                         .HasColumnType("bit");
 
                     b.Property<bool>("InventoryTrackingEnabled")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsCustomizable")
                         .HasColumnType("bit");
@@ -364,14 +359,10 @@ namespace namera_API.Migrations
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsPriceVisible")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
+                        .HasColumnType("bit");
 
                     b.Property<int>("LowStockThreshold")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(3);
+                        .HasColumnType("int");
 
                     b.Property<bool>("MadeToOrder")
                         .HasColumnType("bit");
@@ -404,10 +395,8 @@ namespace namera_API.Migrations
 
                     b.Property<string>("PreparationUnit")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
-                        .HasDefaultValue("Days");
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("PriceLabel")
                         .HasMaxLength(160)
@@ -415,10 +404,8 @@ namespace namera_API.Migrations
 
                     b.Property<string>("PricingType")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)")
-                        .HasDefaultValue("Fixed");
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<int?>("Quantity")
                         .HasColumnType("int");

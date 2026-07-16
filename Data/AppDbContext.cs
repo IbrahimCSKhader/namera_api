@@ -16,6 +16,10 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     public DbSet<ProductCategory> ProductCategories => Set<ProductCategory>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
+    public DbSet<ProductOptionGroup> ProductOptionGroups => Set<ProductOptionGroup>();
+    public DbSet<ProductOptionValue> ProductOptionValues => Set<ProductOptionValue>();
+    public DbSet<ProductCustomizationField> ProductCustomizationFields => Set<ProductCustomizationField>();
+    public DbSet<ProductCustomizationChoice> ProductCustomizationChoices => Set<ProductCustomizationChoice>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

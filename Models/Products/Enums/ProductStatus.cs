@@ -5,6 +5,9 @@ public enum ProductStatus
     Draft,
     Active,
     Inactive,
+    Published,
+    Hidden,
     OutOfStock,
+    Unavailable,
     Archived
 }
