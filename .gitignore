@@ -5,6 +5,7 @@ obj/
 *.user
 *.suo
 *.log
+wwwroot/uploads/
 
 # Local/sensitive configuration
 Program.cs

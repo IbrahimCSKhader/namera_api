@@ -92,7 +92,7 @@ public sealed class ProductManagementService : IProductManagementService
 
         var product = new Product
         {
-            Id = Guid.NewGuid(),
+            Id = request.ClientId ?? Guid.NewGuid(),
             CreatedAt = DateTime.UtcNow
         };
 
@@ -179,7 +179,7 @@ public sealed class ProductManagementService : IProductManagementService
         var slug = await CreateUniqueCategorySlugAsync(request.Slug, name);
         var category = new ProductCategory
         {
-            Id = Guid.NewGuid(),
+            Id = request.ClientId ?? Guid.NewGuid(),
             Name = name,
             Slug = slug,
             Description = NormalizeNullableText(request.Description),

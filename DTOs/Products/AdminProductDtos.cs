@@ -11,6 +11,7 @@ public sealed class AdminProductListQueryDto
 
 public class CreateProductRequestDto
 {
+    public Guid? ClientId { get; init; }
     public string Name { get; init; } = string.Empty;
     public string? Slug { get; init; }
     public string? ShortDescription { get; init; }
@@ -55,10 +56,30 @@ public sealed class UpdateProductRequestDto : CreateProductRequestDto
 
 public sealed class CreateProductCategoryRequestDto
 {
+    public Guid? ClientId { get; init; }
     public string Name { get; init; } = string.Empty;
     public string? Slug { get; init; }
     public string? Description { get; init; }
     public string? ImageUrl { get; init; }
+}
+
+public sealed class UploadProductImageRequestDto
+{
+    public Guid ProductId { get; init; }
+    public IFormFile? File { get; init; }
+}
+
+public sealed class UploadCategoryImageRequestDto
+{
+    public Guid CategoryId { get; init; }
+    public IFormFile? File { get; init; }
+}
+
+public sealed class UploadedMediaDto
+{
+    public string Url { get; init; } = string.Empty;
+    public string FileName { get; init; } = string.Empty;
+    public long Size { get; init; }
 }
 
 public sealed class ProductImageRequestDto

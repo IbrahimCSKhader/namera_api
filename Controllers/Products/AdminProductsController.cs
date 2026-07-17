@@ -13,10 +13,14 @@ namespace namera_API.Controllers.Products;
 public sealed class AdminProductsController : ControllerBase
 {
     private readonly IProductManagementService _productManagementService;
+    private readonly IProductMediaStorageService _productMediaStorageService;
 
-    public AdminProductsController(IProductManagementService productManagementService)
+    public AdminProductsController(
+        IProductManagementService productManagementService,
+        IProductMediaStorageService productMediaStorageService)
     {
         _productManagementService = productManagementService;
+        _productMediaStorageService = productMediaStorageService;
     }
 
     [HttpGet]
@@ -64,6 +68,22 @@ public sealed class AdminProductsController : ControllerBase
     public async Task<ActionResult<ApiResponse<ProductCategoryResponseDto>>> CreateCategory(CreateProductCategoryRequestDto request)
     {
         var response = await _productManagementService.CreateCategoryAsync(request);
+        return response.Success ? Ok(response) : BadRequest(response);
+    }
+
+    [HttpPost("uploads/product-image")]
+    [RequestSizeLimit(8 * 1024 * 1024)]
+    public async Task<ActionResult<ApiResponse<UploadedMediaDto>>> UploadProductImage([FromForm] UploadProductImageRequestDto request)
+    {
+        var response = await _productMediaStorageService.SaveProductImageAsync(request.ProductId, request.File, HttpContext.RequestAborted);
+        return response.Success ? Ok(response) : BadRequest(response);
+    }
+
+    [HttpPost("uploads/category-image")]
+    [RequestSizeLimit(8 * 1024 * 1024)]
+    public async Task<ActionResult<ApiResponse<UploadedMediaDto>>> UploadCategoryImage([FromForm] UploadCategoryImageRequestDto request)
+    {
+        var response = await _productMediaStorageService.SaveCategoryImageAsync(request.CategoryId, request.File, HttpContext.RequestAborted);
         return response.Success ? Ok(response) : BadRequest(response);
     }
 }

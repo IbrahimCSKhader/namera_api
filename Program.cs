@@ -14,6 +14,8 @@ builder.Services.AddIdentityServices(builder.Configuration);
 builder.Services.AddJwtServices(builder.Configuration);
 builder.Services.AddApplicationServices();
 
+Directory.CreateDirectory(builder.Environment.WebRootPath ?? Path.Combine(builder.Environment.ContentRootPath, "wwwroot"));
+
 var app = builder.Build();
 
 // Keep Swagger available while the hosted backend is being tested.
@@ -21,6 +23,8 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
+
+app.UseStaticFiles();
 
 app.UseCors("ReactFrontend");
 

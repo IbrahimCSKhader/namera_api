@@ -41,6 +41,7 @@ public static class IdentityServiceExtensions
         services.AddScoped<ICustomerService, CustomerService>();
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<IProductManagementService, ProductManagementService>();
+        services.AddScoped<IProductMediaStorageService, ProductMediaStorageService>();
         services.AddScoped<ITokenService, TokenService>();
 
         return services;
