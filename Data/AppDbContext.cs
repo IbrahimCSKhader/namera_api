@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using namera_API.Models.Identity;
+using namera_API.Models.Orders;
 using namera_API.Models.Products.Categories;
 using namera_API.Models.Products.Products;
 
@@ -20,6 +21,8 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     public DbSet<ProductOptionValue> ProductOptionValues => Set<ProductOptionValue>();
     public DbSet<ProductCustomizationField> ProductCustomizationFields => Set<ProductCustomizationField>();
     public DbSet<ProductCustomizationChoice> ProductCustomizationChoices => Set<ProductCustomizationChoice>();
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

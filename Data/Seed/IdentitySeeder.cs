@@ -36,8 +36,22 @@ public static class IdentitySeeder
             Password: configuration["SeedCustomer:Password"] ?? "Customer12345",
             Role: AppRoles.Customer);
 
+        var demoCustomers = new[]
+        {
+            customerSeed,
+            new SeedUser("ميار", "سبتة", "mayar_sabta", "mayar.sabta@namera.local", "0591111112", "عنوان ميار سبتة", "Customer12345", AppRoles.Customer),
+            new SeedUser("مسرة", "النوباني", "masara_noubani", "masara.noubani@namera.local", "0591111113", "عنوان مسرة النوباني", "Customer12345", AppRoles.Customer),
+            new SeedUser("سيلين", "", "celine_customer", "celine@namera.local", "0591111114", "عنوان سيلين", "Customer12345", AppRoles.Customer),
+            new SeedUser("ميس", "الريم", "mais_alreem", "mais.alreem@namera.local", "0591111115", "عنوان ميس الريم", "Customer12345", AppRoles.Customer),
+            new SeedUser("رحيق", "موسى", "raheeq_mousa", "raheeq.mousa@namera.local", "0591111116", "عنوان رحيق موسى", "Customer12345", AppRoles.Customer)
+        };
+
         await EnsureUserAsync(userManager, ownerSeed);
-        await EnsureUserAsync(userManager, customerSeed);
+
+        foreach (var seed in demoCustomers)
+        {
+            await EnsureUserAsync(userManager, seed);
+        }
     }
 
     private static async Task EnsureUserAsync(UserManager<ApplicationUser> userManager, SeedUser seed)

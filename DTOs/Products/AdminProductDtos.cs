@@ -155,6 +155,7 @@ public sealed class AdminProductListItemDto
     public string Name { get; init; } = string.Empty;
     public string Slug { get; init; } = string.Empty;
     public string CategoryName { get; init; } = string.Empty;
+    public bool CategoryIsActive { get; init; }
     public string Status { get; init; } = string.Empty;
     public string PricingType { get; init; } = string.Empty;
     public decimal? BasePrice { get; init; }
@@ -164,6 +165,7 @@ public sealed class AdminProductListItemDto
     public bool HasCustomizations { get; init; }
     public bool IsFeatured { get; init; }
     public bool IsVisible { get; init; }
+    public string VisibilityNote { get; init; } = string.Empty;
     public int DisplayOrder { get; init; }
     public string PrimaryImageUrl { get; init; } = string.Empty;
     public DateTime CreatedAt { get; init; }

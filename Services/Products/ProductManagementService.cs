@@ -592,6 +592,7 @@ public sealed class ProductManagementService : IProductManagementService
             Name = product.Name,
             Slug = product.Slug,
             CategoryName = product.Category.Name,
+            CategoryIsActive = product.Category.IsActive,
             Status = ToStatusKey(product.Status),
             PricingType = ToPricingTypeKey(product.PricingType),
             BasePrice = product.PricingType == ProductPricingType.Quote ? null : product.BasePrice,
@@ -600,7 +601,8 @@ public sealed class ProductManagementService : IProductManagementService
             IsLowStock = product.InventoryTrackingEnabled && !product.MadeToOrder && product.Quantity <= product.LowStockThreshold,
             HasCustomizations = product.HasVariants || product.CustomizationFields.Count > 0,
             IsFeatured = product.IsFeatured,
-            IsVisible = IsCustomerVisible(product.Status),
+            IsVisible = product.Category.IsActive && IsCustomerVisible(product.Status) && !product.DirectAccessOnly,
+            VisibilityNote = BuildVisibilityNote(product),
             DisplayOrder = product.DisplayOrder,
             PrimaryImageUrl = primaryImage?.ImageUrl ?? string.Empty,
             CreatedAt = product.CreatedAt,
@@ -728,10 +730,29 @@ public sealed class ProductManagementService : IProductManagementService
             IsActive = category.IsActive,
             DisplayOrder = category.DisplayOrder,
             ProductsCount = category.Products.Count,
-            VisibleProductsCount = category.Products.Count(product => IsCustomerVisible(product.Status) && !product.DirectAccessOnly),
+            VisibleProductsCount = category.IsActive
+                ? category.Products.Count(product => IsCustomerVisible(product.Status) && !product.DirectAccessOnly)
+                : 0,
             CreatedAt = category.CreatedAt,
             UpdatedAt = category.UpdatedAt
         };
+    }
+
+    private static string BuildVisibilityNote(Product product)
+    {
+        if (!product.Category.IsActive)
+        {
+            return "التصنيف معطل، لذلك المنتج مخفي عن الزبائن.";
+        }
+
+        if (product.DirectAccessOnly)
+        {
+            return "المنتج مضبوط كرابط مباشر فقط.";
+        }
+
+        return IsCustomerVisible(product.Status)
+            ? "ظاهر للزبائن."
+            : "حالة المنتج لا تسمح بظهوره للزبائن.";
     }
 
     private static ProductStatus ParseStatus(string status)

@@ -4,6 +4,7 @@ using namera_API.Data;
 using namera_API.Models.Identity;
 using namera_API.Services.Authentication;
 using namera_API.Services.Customer;
+using namera_API.Services.Orders;
 using namera_API.Services.Products;
 using namera_API.Services.Token;
 
@@ -39,6 +40,7 @@ public static class IdentityServiceExtensions
     {
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ICustomerService, CustomerService>();
+        services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<IProductManagementService, ProductManagementService>();
         services.AddScoped<IProductMediaStorageService, ProductMediaStorageService>();

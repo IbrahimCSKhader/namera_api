@@ -38,7 +38,7 @@ public sealed class ProductManagementServiceTests
         var result = Assert.Single(response.Data!);
         Assert.False(result.IsActive);
         Assert.Equal(3, result.ProductsCount);
-        Assert.Equal(1, result.VisibleProductsCount);
+        Assert.Equal(0, result.VisibleProductsCount);
     }
 
     [Fact]
