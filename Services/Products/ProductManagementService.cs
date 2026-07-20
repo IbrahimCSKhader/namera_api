@@ -168,6 +168,20 @@ public sealed class ProductManagementService : IProductManagementService
         return await GetProductAsync(id);
     }
 
+    public async Task<ApiResponse<IReadOnlyList<AdminProductCategoryDto>>> GetCategoriesAsync()
+    {
+        var categories = await _dbContext.ProductCategories
+            .AsNoTracking()
+            .Include(category => category.Products)
+            .OrderBy(category => category.DisplayOrder)
+            .ThenBy(category => category.Name)
+            .ToListAsync();
+
+        return ApiResponse<IReadOnlyList<AdminProductCategoryDto>>.Ok(
+            categories.Select(ToAdminCategoryDto).ToList(),
+            "تم تحميل التصنيفات بنجاح");
+    }
+
     public async Task<ApiResponse<ProductCategoryResponseDto>> CreateCategoryAsync(CreateProductCategoryRequestDto request)
     {
         var name = NormalizeText(request.Name);
@@ -185,7 +199,7 @@ public sealed class ProductManagementService : IProductManagementService
             Description = NormalizeNullableText(request.Description),
             ImageUrl = NormalizeNullableText(request.ImageUrl),
             IsActive = true,
-            DisplayOrder = await _dbContext.ProductCategories.CountAsync() + 1,
+            DisplayOrder = request.DisplayOrder.GetValueOrDefault(await _dbContext.ProductCategories.CountAsync() + 1),
             CreatedAt = DateTime.UtcNow
         };
 
@@ -193,6 +207,57 @@ public sealed class ProductManagementService : IProductManagementService
         await _dbContext.SaveChangesAsync();
 
         return ApiResponse<ProductCategoryResponseDto>.Ok(ToCategoryDto(category), "تم إنشاء التصنيف بنجاح");
+    }
+
+    public async Task<ApiResponse<AdminProductCategoryDto>> UpdateCategoryAsync(Guid id, UpdateProductCategoryRequestDto request)
+    {
+        var category = await _dbContext.ProductCategories
+            .Include(item => item.Products)
+            .FirstOrDefaultAsync(item => item.Id == id);
+
+        if (category is null)
+        {
+            return ApiResponse<AdminProductCategoryDto>.Fail("التصنيف غير موجود");
+        }
+
+        var name = NormalizeText(request.Name);
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return ApiResponse<AdminProductCategoryDto>.Fail("اسم التصنيف مطلوب");
+        }
+
+        category.Name = name;
+        category.Slug = await CreateUniqueCategorySlugAsync(request.Slug, name, id);
+        category.Description = NormalizeNullableText(request.Description);
+        category.ImageUrl = NormalizeNullableText(request.ImageUrl);
+        category.DisplayOrder = request.DisplayOrder <= 0 ? category.DisplayOrder : request.DisplayOrder;
+        category.IsActive = request.IsActive;
+        category.UpdatedAt = DateTime.UtcNow;
+
+        await _dbContext.SaveChangesAsync();
+
+        return ApiResponse<AdminProductCategoryDto>.Ok(ToAdminCategoryDto(category), "تم تحديث التصنيف بنجاح");
+    }
+
+    public async Task<ApiResponse<AdminProductCategoryDto>> SetCategoryActiveAsync(Guid id, bool isActive)
+    {
+        var category = await _dbContext.ProductCategories
+            .Include(item => item.Products)
+            .FirstOrDefaultAsync(item => item.Id == id);
+
+        if (category is null)
+        {
+            return ApiResponse<AdminProductCategoryDto>.Fail("التصنيف غير موجود");
+        }
+
+        category.IsActive = isActive;
+        category.UpdatedAt = DateTime.UtcNow;
+
+        await _dbContext.SaveChangesAsync();
+
+        return ApiResponse<AdminProductCategoryDto>.Ok(
+            ToAdminCategoryDto(category),
+            isActive ? "تم تفعيل التصنيف بنجاح" : "تم تعطيل التصنيف بنجاح");
     }
 
     private async Task<Product?> GetProductForDetailsAsync(Guid id)
@@ -503,13 +568,13 @@ public sealed class ProductManagementService : IProductManagementService
         return slug;
     }
 
-    private async Task<string> CreateUniqueCategorySlugAsync(string? requestedSlug, string name)
+    private async Task<string> CreateUniqueCategorySlugAsync(string? requestedSlug, string name, Guid? existingCategoryId = null)
     {
         var baseSlug = Slugify(string.IsNullOrWhiteSpace(requestedSlug) ? name : requestedSlug);
         var slug = baseSlug;
         var counter = 2;
 
-        while (await _dbContext.ProductCategories.AnyAsync(category => category.Slug == slug))
+        while (await _dbContext.ProductCategories.AnyAsync(category => category.Slug == slug && category.Id != existingCategoryId))
         {
             slug = $"{baseSlug}-{counter++}";
         }
@@ -648,6 +713,24 @@ public sealed class ProductManagementService : IProductManagementService
             Slug = category.Slug,
             Description = category.Description ?? string.Empty,
             ImageUrl = category.ImageUrl ?? string.Empty
+        };
+    }
+
+    private static AdminProductCategoryDto ToAdminCategoryDto(ProductCategory category)
+    {
+        return new AdminProductCategoryDto
+        {
+            Id = category.Id,
+            Name = category.Name,
+            Slug = category.Slug,
+            Description = category.Description ?? string.Empty,
+            ImageUrl = category.ImageUrl ?? string.Empty,
+            IsActive = category.IsActive,
+            DisplayOrder = category.DisplayOrder,
+            ProductsCount = category.Products.Count,
+            VisibleProductsCount = category.Products.Count(product => IsCustomerVisible(product.Status) && !product.DirectAccessOnly),
+            CreatedAt = category.CreatedAt,
+            UpdatedAt = category.UpdatedAt
         };
     }
 

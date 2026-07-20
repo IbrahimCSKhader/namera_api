@@ -45,6 +45,7 @@ using (var scope = app.Services.CreateScope())
 
         await dbContext.Database.MigrateAsync();
         await IdentitySeeder.SeedAsync(scope.ServiceProvider);
+        await ProductSeeder.SeedAsync(scope.ServiceProvider);
 
         logger.LogInformation("Database migration and seeding completed successfully.");
     }

@@ -61,6 +61,17 @@ public sealed class CreateProductCategoryRequestDto
     public string? Slug { get; init; }
     public string? Description { get; init; }
     public string? ImageUrl { get; init; }
+    public int? DisplayOrder { get; init; }
+}
+
+public sealed class UpdateProductCategoryRequestDto
+{
+    public string Name { get; init; } = string.Empty;
+    public string? Slug { get; init; }
+    public string? Description { get; init; }
+    public string? ImageUrl { get; init; }
+    public int DisplayOrder { get; init; }
+    public bool IsActive { get; init; } = true;
 }
 
 public sealed class UploadProductImageRequestDto
@@ -155,6 +166,21 @@ public sealed class AdminProductListItemDto
     public bool IsVisible { get; init; }
     public int DisplayOrder { get; init; }
     public string PrimaryImageUrl { get; init; } = string.Empty;
+    public DateTime CreatedAt { get; init; }
+    public DateTime? UpdatedAt { get; init; }
+}
+
+public sealed class AdminProductCategoryDto
+{
+    public Guid Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Slug { get; init; } = string.Empty;
+    public string Description { get; init; } = string.Empty;
+    public string ImageUrl { get; init; } = string.Empty;
+    public bool IsActive { get; init; }
+    public int DisplayOrder { get; init; }
+    public int ProductsCount { get; init; }
+    public int VisibleProductsCount { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
 }

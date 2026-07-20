@@ -64,6 +64,8 @@ public sealed class ProductService : IProductService
 
     private IQueryable<Product> VisibleProducts()
     {
+        var now = DateTime.UtcNow;
+
         return _dbContext.Products
             .AsNoTracking()
             .Include(product => product.Category)
@@ -73,10 +75,13 @@ public sealed class ProductService : IProductService
             .Include(product => product.CustomizationFields)
                 .ThenInclude(field => field.Choices)
             .Where(product =>
-                product.Status == ProductStatus.Active ||
-                product.Status == ProductStatus.Published ||
-                product.Status == ProductStatus.OutOfStock ||
-                product.Status == ProductStatus.Unavailable);
+                product.Category.IsActive &&
+                (product.VisibleFrom == null || product.VisibleFrom <= now) &&
+                (product.VisibleTo == null || product.VisibleTo >= now) &&
+                (product.Status == ProductStatus.Active ||
+                 product.Status == ProductStatus.Published ||
+                 product.Status == ProductStatus.OutOfStock ||
+                 product.Status == ProductStatus.Unavailable));
     }
 
     private static ProductResponseDto ToProductResponse(Product product)

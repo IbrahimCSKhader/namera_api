@@ -11,5 +11,8 @@ public interface IProductManagementService
     Task<ApiResponse<ProductDetailsDto>> UpdateProductAsync(Guid id, UpdateProductRequestDto request);
     Task<ApiResponse<ProductDetailsDto>> ArchiveProductAsync(Guid id);
     Task<ApiResponse<ProductDetailsDto>> PublishProductAsync(Guid id, bool publish);
+    Task<ApiResponse<IReadOnlyList<AdminProductCategoryDto>>> GetCategoriesAsync();
     Task<ApiResponse<ProductCategoryResponseDto>> CreateCategoryAsync(CreateProductCategoryRequestDto request);
+    Task<ApiResponse<AdminProductCategoryDto>> UpdateCategoryAsync(Guid id, UpdateProductCategoryRequestDto request);
+    Task<ApiResponse<AdminProductCategoryDto>> SetCategoryActiveAsync(Guid id, bool isActive);
 }

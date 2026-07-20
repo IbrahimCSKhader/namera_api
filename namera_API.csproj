@@ -26,4 +26,10 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="namera_API.Tests\**\*.cs" />
+    <Content Remove="namera_API.Tests\**\*" />
+    <None Remove="namera_API.Tests\**\*" />
+  </ItemGroup>
+
 </Project>

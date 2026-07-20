@@ -71,6 +71,26 @@ public sealed class AdminProductsController : ControllerBase
         return response.Success ? Ok(response) : BadRequest(response);
     }
 
+    [HttpGet("categories")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AdminProductCategoryDto>>>> GetCategories()
+    {
+        return Ok(await _productManagementService.GetCategoriesAsync());
+    }
+
+    [HttpPut("categories/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<AdminProductCategoryDto>>> UpdateCategory(Guid id, UpdateProductCategoryRequestDto request)
+    {
+        var response = await _productManagementService.UpdateCategoryAsync(id, request);
+        return response.Success ? Ok(response) : BadRequest(response);
+    }
+
+    [HttpPatch("categories/{id:guid}/active")]
+    public async Task<ActionResult<ApiResponse<AdminProductCategoryDto>>> SetCategoryActive(Guid id, [FromQuery] bool active = true)
+    {
+        var response = await _productManagementService.SetCategoryActiveAsync(id, active);
+        return response.Success ? Ok(response) : BadRequest(response);
+    }
+
     [HttpPost("uploads/product-image")]
     [RequestSizeLimit(8 * 1024 * 1024)]
     public async Task<ActionResult<ApiResponse<UploadedMediaDto>>> UploadProductImage([FromForm] UploadProductImageRequestDto request)
