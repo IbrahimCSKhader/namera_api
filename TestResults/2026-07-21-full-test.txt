@@ -1,0 +1,409 @@
+Namera / Resin Bon - Full Test Cases
+Date: 2026-07-21
+File: 2026-07-21-full-test.txt
+Scope: Complete role-based test matrix for Guest, Customer, and Owner user flows.
+
+Legend:
+- AUTOMATED_PASS: covered by the current automated suite and passing at the time this matrix was prepared.
+- PLANNED: required test case documented for manual QA or future automation.
+- API: backend endpoint/service test.
+- UI: frontend page/component flow test.
+- E2E: browser/API combined flow.
+
+Current implemented automated suites to keep running:
+1. Backend: dotnet test namera_API.Tests\namera_API.Tests.csproj --no-restore
+2. Frontend: npm test -- --run
+3. Frontend build: npm run build
+4. Frontend lint: npm run lint
+
+Core roles:
+1. Guest: user is not authenticated.
+2. Customer: authenticated user with Customer role.
+3. Owner: authenticated user with Owner role.
+
+Reference routes and endpoints:
+- Public UI: /, /products, /categories, /about, /contact, /cart, /login, /register
+- Customer UI: /customer/dashboard, /account/profile, /account/orders, /account/reviews, /account/addresses
+- Owner UI: /owner/dashboard, /owner/products, /owner/products/new, /owner/products/:productId/edit, /owner/categories, /owner/orders, /owner/customers
+- Auth API: POST /api/auth/register, POST /api/auth/login, GET /api/auth/me
+- Public products API: GET /api/products, GET /api/products/{slug}, GET /api/products/categories
+- Customer API: GET/PUT /api/customer/profile, GET /api/customer/dashboard, GET/POST/PUT/DELETE /api/customer/addresses, GET/POST/DELETE /api/customer/reviews
+- Customer orders API: GET/POST /api/customer/orders
+- Owner products API: GET/POST/PUT /api/admin/products, GET /api/admin/products/{id}, PATCH /api/admin/products/{id}/publish, PATCH /api/admin/products/{id}/archive
+- Owner categories API: GET/POST/PUT /api/admin/products/categories, PATCH /api/admin/products/categories/{id}/active
+- Owner uploads API: POST /api/admin/products/uploads/product-image, POST /api/admin/products/uploads/category-image
+- Owner orders/customers/dashboard API: GET /api/admin/orders, PATCH /api/admin/orders/{id}/status, GET /api/admin/customers, GET /api/admin/dashboard/stats
+
+======================================================================
+GUEST / غير مسجل
+======================================================================
+
+GST-001 | UI | PLANNED | Open home page / | Steps: visit /. | Expected: page loads, brand/logo visible, public nav visible, no owner/customer-only dashboard links.
+GST-002 | UI | PLANNED | Header unauthenticated actions | Steps: inspect desktop header. | Expected: login and register links visible, logout hidden, account menu hidden.
+GST-003 | UI | PLANNED | Mobile menu unauthenticated actions | Steps: open mobile menu. | Expected: public nav, login, register, cart visible; logout hidden.
+GST-004 | UI | PLANNED | Search from header | Steps: type search text and submit. | Expected: navigates to /products?search=... and products page renders.
+GST-005 | UI | PLANNED | Empty search from header | Steps: submit blank search. | Expected: navigates to /products.
+GST-006 | UI/API | PLANNED | Public products list | Steps: visit /products. | Expected: GET /api/products succeeds without token; active/customer-visible products display.
+GST-007 | UI/API | PLANNED | Public categories list | Steps: visit /categories. | Expected: GET /api/products/categories succeeds without token; only active categories display.
+GST-008 | UI/API | PLANNED | Product category filter | Steps: click category chip/card. | Expected: URL has category query and only matching products display.
+GST-009 | UI | PLANNED | Product card add to cart | Steps: click add-to-cart on orderable product. | Expected: cart count increases and item saved in localStorage.
+GST-010 | UI | PLANNED | Non-orderable product button | Steps: inspect product with allowOrdering=false. | Expected: add button disabled and cart unchanged.
+GST-011 | UI | AUTOMATED_PASS | Cart local storage increment | Steps: add same product twice through cart storage utility. | Expected: one cart item with quantity 2.
+GST-012 | UI | AUTOMATED_PASS | Cart local storage remove zero quantity | Steps: set cart item quantity to 0. | Expected: item removed from cart.
+GST-013 | UI | AUTOMATED_PASS | Invalid cart storage recovery | Steps: localStorage contains invalid JSON. | Expected: readCart returns empty array safely.
+GST-014 | UI | PLANNED | Cart page guest view | Steps: visit /cart with items. | Expected: items, quantities, total, shipping fields, and submit button render.
+GST-015 | UI/E2E | PLANNED | Guest checkout redirect | Steps: guest clicks submit order from cart. | Expected: redirected to /login and order is not created.
+GST-016 | UI | PLANNED | Continue shopping link from cart | Steps: click continue shopping. | Expected: navigates to /products.
+GST-017 | UI | PLANNED | Register page render | Steps: visit /register. | Expected: registration form fields render and link to login exists.
+GST-018 | UI | AUTOMATED_PASS | Register form validation empty/invalid | Steps: submit invalid register state. | Expected: required field, phone, email, password, confirm, terms validation errors.
+GST-019 | UI | AUTOMATED_PASS | Register request mapping | Steps: build register request from simple UI fields. | Expected: first/last name and customer username are produced correctly.
+GST-020 | API/E2E | PLANNED | Register new customer | Steps: POST valid register request. | Expected: Customer role assigned, token returned, user routed to /customer/dashboard.
+GST-021 | API/E2E | PLANNED | Register duplicate phone | Steps: register with existing phone. | Expected: API returns validation error and no duplicate user created.
+GST-022 | API/E2E | PLANNED | Register weak password | Steps: submit password below policy. | Expected: API returns password validation errors.
+GST-023 | UI | PLANNED | Login page render | Steps: visit /login. | Expected: identifier/password fields, demo login buttons, link to register.
+GST-024 | UI | AUTOMATED_PASS | Login form empty validation | Steps: submit blank login form. | Expected: identifier and password required messages.
+GST-025 | UI | AUTOMATED_PASS | Login form valid values | Steps: provide identifier and password. | Expected: no client validation errors.
+GST-026 | API/E2E | PLANNED | Customer login with username | Steps: login as customer_demo. | Expected: token saved and redirect to /customer/dashboard.
+GST-027 | API/E2E | PLANNED | Customer login with phone | Steps: login with customer's phone. | Expected: token saved and redirect to /customer/dashboard.
+GST-028 | API/E2E | PLANNED | Customer login with email | Steps: login with customer's email. | Expected: token saved and redirect to /customer/dashboard.
+GST-029 | API/E2E | PLANNED | Owner login | Steps: login with owner credentials. | Expected: token saved and redirect to /owner/dashboard.
+GST-030 | API/E2E | PLANNED | Login wrong password | Steps: valid identifier with wrong password. | Expected: API returns error and no token stored.
+GST-031 | API/E2E | PLANNED | Login inactive account | Steps: login as inactive user. | Expected: blocked by API.
+GST-032 | UI/API | PLANNED | GET /api/auth/me without token | Steps: call endpoint unauthenticated. | Expected: 401 Unauthorized.
+GST-033 | UI | PLANNED | Protected customer route as guest | Steps: visit /customer/dashboard without token. | Expected: redirect to /login.
+GST-034 | UI | PLANNED | Protected owner route as guest | Steps: visit /owner/dashboard without token. | Expected: redirect to /login.
+GST-035 | UI | PLANNED | Unknown route fallback | Steps: visit /missing-route. | Expected: redirects to home page.
+GST-036 | UI | PLANNED | About page render | Steps: visit /about. | Expected: Resin Bon about content and images render.
+GST-037 | UI | PLANNED | Contact placeholder render | Steps: visit /contact. | Expected: placeholder page renders without crash.
+GST-038 | UI | PLANNED | Public responsive layout | Steps: test public pages at mobile and desktop widths. | Expected: no horizontal overflow, text does not overlap.
+GST-039 | UI | PLANNED | Header categories dropdown | Steps: hover/open categories dropdown. | Expected: active categories listed; disabled/deleted categories absent.
+GST-040 | API | PLANNED | Public products exclude inactive category products | Steps: disable a category with products and GET /api/products. | Expected: products in disabled category are hidden.
+
+======================================================================
+CUSTOMER / زبون
+======================================================================
+
+CUS-001 | UI/E2E | PLANNED | Customer login routing | Steps: login as Customer. | Expected: redirect to /customer/dashboard.
+CUS-002 | UI | PLANNED | Customer header account links | Steps: inspect desktop header as Customer. | Expected: customer account menu, cart, notifications, logout visible; owner nav hidden.
+CUS-003 | UI | PLANNED | Customer mobile account links | Steps: open mobile menu as Customer. | Expected: profile, orders, reviews, addresses, cart, logout visible.
+CUS-004 | UI | PLANNED | Logout as customer | Steps: click logout. | Expected: token/user cleared, redirected to /login, protected pages unavailable.
+CUS-005 | API | PLANNED | Customer cannot access owner APIs | Steps: call /api/admin/products with Customer token. | Expected: 403 Forbidden.
+CUS-006 | UI | PLANNED | Customer cannot open owner route | Steps: visit /owner/dashboard as Customer. | Expected: redirected to /customer/dashboard.
+CUS-007 | UI/API | PLANNED | Customer dashboard loads summary | Steps: visit /customer/dashboard. | Expected: GET /api/customer/dashboard succeeds and cards show orders, active orders, completed orders, addresses, reviews, spent.
+CUS-008 | UI/API | PLANNED | Customer dashboard empty state | Steps: new customer with no data. | Expected: counters are 0 and no crash.
+CUS-009 | UI/API | PLANNED | Customer dashboard last order | Steps: customer has last order. | Expected: last order number and status badge render.
+CUS-010 | API | PLANNED | GET /api/customer/dashboard auth required | Steps: call without token. | Expected: 401 Unauthorized.
+CUS-011 | API | AUTOMATED_PASS | Dashboard counters | Steps: service has one order, one address, one review. | Expected: dashboard returns matching counters and total spent.
+CUS-012 | UI/API | PLANNED | Profile page loads current customer | Steps: visit /account/profile. | Expected: GET /api/customer/profile populates fields.
+CUS-013 | UI/API | PLANNED | Update profile success | Steps: change first/last name, phone, address and save. | Expected: PUT /api/customer/profile succeeds and success message shown.
+CUS-014 | API | PLANNED | Update profile duplicate phone | Steps: update phone to another user's phone. | Expected: API returns duplicate phone error.
+CUS-015 | UI | PLANNED | Profile required field validation | Steps: submit empty first/last/phone/address. | Expected: client validation blocks save.
+CUS-016 | API | PLANNED | Profile auth required | Steps: call GET/PUT profile without token. | Expected: 401 Unauthorized.
+CUS-017 | UI/API | PLANNED | Addresses page loads list | Steps: visit /account/addresses. | Expected: GET /api/customer/addresses returns customer-owned addresses.
+CUS-018 | UI/API | PLANNED | Address empty state | Steps: customer has no addresses. | Expected: empty message shown and form remains usable.
+CUS-019 | UI/API | PLANNED | Create first address | Steps: submit valid address. | Expected: address created and marked default.
+CUS-020 | API | AUTOMATED_PASS | First address becomes default | Steps: create first address in service test. | Expected: IsDefault=true.
+CUS-021 | UI/API | PLANNED | Create second non-default address | Steps: create address with isDefault=false while a default exists. | Expected: new address saved non-default.
+CUS-022 | UI/API | PLANNED | Create second default address | Steps: create address with isDefault=true. | Expected: old default becomes false, new default true.
+CUS-023 | API | AUTOMATED_PASS | New default clears previous default | Steps: create two addresses with second default. | Expected: only second address remains default.
+CUS-024 | UI/API | PLANNED | Edit address | Steps: click edit, change city/line, save. | Expected: PUT /api/customer/addresses/{id} succeeds and list updates.
+CUS-025 | UI/API | PLANNED | Cancel address edit | Steps: click edit then cancel. | Expected: form resets to empty new-address state.
+CUS-026 | UI/API | PLANNED | Delete non-default address | Steps: delete address. | Expected: address removed; other defaults unchanged.
+CUS-027 | UI/API | PLANNED | Delete default address | Steps: delete default while another address exists. | Expected: next newest address becomes default.
+CUS-028 | API | PLANNED | Address belongs to current customer | Steps: customer A tries to update/delete customer B address ID. | Expected: not found/error, no change.
+CUS-029 | API | PLANNED | Address validation missing fields | Steps: POST empty label/recipient/phone/address/city. | Expected: 400 with validation errors.
+CUS-030 | UI/API | PLANNED | Reviews page loads reviews and products | Steps: visit /account/reviews. | Expected: GET /api/customer/reviews and GET /api/products succeed.
+CUS-031 | UI/API | PLANNED | Reviews empty state | Steps: customer has no reviews. | Expected: empty list message shown.
+CUS-032 | UI/API | PLANNED | Create review | Steps: select product, rating, comment and submit. | Expected: POST /api/customer/reviews creates visible review.
+CUS-033 | API | AUTOMATED_PASS | Save review creates record | Steps: save review for product. | Expected: success and one review exists.
+CUS-034 | UI/API | PLANNED | Update existing review for same product | Steps: save second review for same product. | Expected: existing review updated, no duplicate.
+CUS-035 | API | AUTOMATED_PASS | Same product review updates existing | Steps: service saves same product review twice. | Expected: same review ID and one DB row.
+CUS-036 | UI/API | PLANNED | Delete review | Steps: click delete on review. | Expected: DELETE /api/customer/reviews/{id} removes it.
+CUS-037 | API | PLANNED | Review rating below range | Steps: POST rating 0. | Expected: 400 validation.
+CUS-038 | API | PLANNED | Review rating above range | Steps: POST rating 6. | Expected: 400 validation.
+CUS-039 | API | PLANNED | Review hidden/archived product | Steps: review product with hidden/archived status. | Expected: API rejects review.
+CUS-040 | API | PLANNED | Review product with disabled category | Steps: review product under inactive category. | Expected: API rejects review.
+CUS-041 | API | PLANNED | Review product with AllowRatings=false | Steps: review non-rateable product. | Expected: API rejects review.
+CUS-042 | API | PLANNED | Review belongs to current customer | Steps: customer A deletes customer B review. | Expected: not found/error, no deletion.
+CUS-043 | UI/API | PLANNED | Customer orders page loads | Steps: visit /account/orders. | Expected: GET /api/customer/orders returns only current customer's orders.
+CUS-044 | UI/API | PLANNED | Customer orders empty state | Steps: customer has no orders. | Expected: empty message shown.
+CUS-045 | UI/API | PLANNED | Customer order card contents | Steps: customer has order with items. | Expected: order number, status, total, product images, quantities, owner note visible.
+CUS-046 | UI/API | PLANNED | Create order from cart | Steps: add product, open cart, submit as customer. | Expected: POST /api/customer/orders succeeds, cart clears, redirect to /account/orders.
+CUS-047 | API | AUTOMATED_PASS | Create order does not deduct stock | Steps: create order for quantity 2 from product quantity 5. | Expected: order pending, stock remains 5.
+CUS-048 | API | PLANNED | Create order with empty items | Steps: POST empty item list. | Expected: API rejects request.
+CUS-049 | API | PLANNED | Create order with invalid product ID | Steps: POST nonexistent product. | Expected: API rejects with product not found.
+CUS-050 | API | PLANNED | Create order for disabled category product | Steps: product category inactive. | Expected: API rejects order.
+CUS-051 | API | AUTOMATED_PASS | Disabled category order rejected | Steps: service order for product under inactive category. | Expected: response failure and stock unchanged.
+CUS-052 | API | PLANNED | Create order for hidden/direct-access product | Steps: product is hidden or directAccessOnly. | Expected: API rejects order.
+CUS-053 | API | PLANNED | Create order when AllowOrdering=false | Steps: product disallows ordering. | Expected: API rejects order.
+CUS-054 | API | PLANNED | Create order quantity below minimum | Steps: quantity less than product minimum. | Expected: API rejects order.
+CUS-055 | API | PLANNED | Create order quantity above maximum | Steps: quantity above product maximum. | Expected: API rejects order.
+CUS-056 | API | PLANNED | Create order above stock without backorder | Steps: product stock lower than quantity. | Expected: API rejects order.
+CUS-057 | API | PLANNED | Create order with default profile address | Steps: omit shippingAddress. | Expected: order shipping address uses customer profile address.
+CUS-058 | UI | PLANNED | Cart quantity update | Steps: change item quantity in cart page. | Expected: total recalculates and localStorage updates.
+CUS-059 | UI | PLANNED | Cart quantity zero removes item | Steps: set quantity 0. | Expected: item disappears and total updates.
+CUS-060 | UI | PLANNED | Cart empty submit | Steps: submit empty cart as customer. | Expected: error message and no API call.
+CUS-061 | UI | PLANNED | Customer pages responsive | Steps: inspect dashboard/profile/orders/reviews/addresses on mobile. | Expected: no overlapping text, forms fit, tables/cards readable.
+
+======================================================================
+OWNER / صاحب متجر
+======================================================================
+
+OWN-001 | UI/E2E | PLANNED | Owner login routing | Steps: login as Owner. | Expected: redirect to /owner/dashboard.
+OWN-002 | UI | PLANNED | Owner header nav | Steps: inspect desktop header as Owner. | Expected: owner nav visible; cart hidden; logout visible.
+OWN-003 | UI | PLANNED | Owner mobile nav | Steps: open mobile menu as Owner. | Expected: owner dashboard/products/orders/categories/customers/reviews links visible.
+OWN-004 | UI | PLANNED | Logout as owner | Steps: click logout. | Expected: token/user cleared and redirected to /login.
+OWN-005 | UI | PLANNED | Owner cannot open customer route | Steps: visit /customer/dashboard as Owner. | Expected: redirected to /owner/dashboard.
+OWN-006 | API | PLANNED | Owner cannot access customer-owned APIs as customer context | Steps: call /api/customer/profile with Owner token. | Expected: 403 Forbidden by role.
+OWN-007 | UI/API | PLANNED | Owner dashboard stats load | Steps: visit /owner/dashboard. | Expected: GET /api/admin/dashboard/stats succeeds and cards/charts render.
+OWN-008 | UI/API | PLANNED | Owner dashboard empty charts | Steps: no orders exist. | Expected: charts render without division/empty crashes.
+OWN-009 | API | PLANNED | Owner dashboard stats auth required | Steps: call without token. | Expected: 401 Unauthorized.
+OWN-010 | UI/API | PLANNED | Products management loads | Steps: visit /owner/products. | Expected: GET /api/admin/products returns products with visibility and inventory labels.
+OWN-011 | UI/API | PLANNED | Product search filter | Steps: search product name. | Expected: filtered result set matches query.
+OWN-012 | UI/API | PLANNED | Product status filter active/published/draft/hidden/unavailable | Steps: use status query/filter. | Expected: only selected status shows.
+OWN-013 | UI/API | PLANNED | Low-stock filter | Steps: open lowStockOnly route. | Expected: only low stock tracked products show.
+OWN-014 | UI/API | PLANNED | Customized filter | Steps: filter customized products. | Expected: products with customization fields/options show.
+OWN-015 | UI/API | PLANNED | Product details load for edit | Steps: visit /owner/products/{id}/edit. | Expected: GET /api/admin/products/{id} populates form.
+OWN-016 | UI/API | PLANNED | Product details missing ID | Steps: open invalid product ID. | Expected: clear error and no crash.
+OWN-017 | UI/API | AUTOMATED_PASS | Admin product creation payload | Steps: create normalized product draft. | Expected: POST /admin/products payload contains expected fields/images.
+OWN-018 | UI/API | PLANNED | Create basic draft product | Steps: enter name/category/price/stock and save draft. | Expected: product created with draft status.
+OWN-019 | UI/API | PLANNED | Create published product | Steps: create product with published/active status. | Expected: appears to customers if category active and visibility rules pass.
+OWN-020 | UI/API | PLANNED | Create product with auto slug | Steps: leave slug empty. | Expected: backend generates unique slug.
+OWN-021 | API | PLANNED | Create duplicate slug | Steps: create product with existing slug. | Expected: API validation rejects duplicate.
+OWN-022 | UI/API | PLANNED | Create product missing name | Steps: submit without name. | Expected: client/API validation error.
+OWN-023 | UI/API | PLANNED | Create product missing category | Steps: submit without category. | Expected: validation error.
+OWN-024 | UI/API | PLANNED | Create product invalid price | Steps: negative base price. | Expected: validation error.
+OWN-025 | UI/API | PLANNED | Create product with quote pricing | Steps: pricingType quote, price hidden/label. | Expected: customer sees quote label and no numeric base price required.
+OWN-026 | UI/API | PLANNED | Create product startingFrom pricing | Steps: pricingType startingFrom. | Expected: price label starts from base price.
+OWN-027 | UI/API | PLANNED | Create product options-based pricing | Steps: add option groups and values with extra prices. | Expected: product saved with active option groups and values.
+OWN-028 | UI/API | PLANNED | Required option group without values | Steps: create required group empty. | Expected: validation error.
+OWN-029 | UI/API | PLANNED | Product customization short text | Steps: add required short text field. | Expected: saved and returned in product details.
+OWN-030 | UI/API | PLANNED | Product customization long text | Steps: add long text field. | Expected: saved and returned.
+OWN-031 | UI/API | PLANNED | Product customization single/multi select | Steps: add choices. | Expected: choices saved in display order.
+OWN-032 | UI/API | PLANNED | Product customization checkbox/date/number/file | Steps: add each supported type. | Expected: validation and save handle type-specific fields.
+OWN-033 | UI/API | PLANNED | Product image upload success | Steps: upload allowed image below 8MB. | Expected: /api/admin/products/uploads/product-image returns URL and product form accepts it.
+OWN-034 | UI/API | PLANNED | Product image upload missing file | Steps: submit upload without file. | Expected: API rejects.
+OWN-035 | UI/API | PLANNED | Product image upload too large | Steps: upload over 8MB. | Expected: API rejects by size/request limit.
+OWN-036 | UI/API | PLANNED | Product image primary selection | Steps: add multiple images and mark one primary. | Expected: one primary image shown in product card/admin table.
+OWN-037 | UI/API | PLANNED | Product inventory tracking on | Steps: set quantity and low stock threshold. | Expected: inventory label and low-stock flag calculated.
+OWN-038 | UI/API | PLANNED | Product inventory tracking off | Steps: disable tracking. | Expected: order creation does not require quantity deduction.
+OWN-039 | UI/API | PLANNED | Product allow backorder | Steps: allowBackorder true and quantity low. | Expected: order allowed according to backend rule.
+OWN-040 | UI/API | PLANNED | Product min/max quantity | Steps: set min and max. | Expected: customer order validation respects range.
+OWN-041 | UI/API | PLANNED | Product visibility directAccessOnly | Steps: set directAccessOnly true. | Expected: hidden from general listing and rejected for normal customer order.
+OWN-042 | UI/API | PLANNED | Product visibility date range future | Steps: VisibleFrom in future. | Expected: hidden from public list.
+OWN-043 | UI/API | PLANNED | Product visibility date range expired | Steps: VisibleTo in past. | Expected: hidden from public list.
+OWN-044 | UI/API | PLANNED | Show on homepage flag | Steps: toggle ShowOnHomepage. | Expected: product included/excluded from homepage section if supported.
+OWN-045 | UI/API | PLANNED | Featured/new flags | Steps: toggle IsFeatured/IsNew. | Expected: admin and public badges reflect flags.
+OWN-046 | UI/API | PLANNED | Edit product success | Steps: change product fields and save. | Expected: PUT /api/admin/products/{id} updates product and refreshes details.
+OWN-047 | UI/API | PLANNED | Edit product preserves image/order data | Steps: edit text without removing images. | Expected: images remain unless intentionally changed.
+OWN-048 | UI/API | PLANNED | Publish product | Steps: PATCH /publish?publish=true. | Expected: status becomes published/active and public visibility follows category.
+OWN-049 | UI/API | PLANNED | Unpublish product | Steps: PATCH /publish?publish=false. | Expected: product hidden from customers but remains in owner list.
+OWN-050 | UI/API | PLANNED | Archive product | Steps: PATCH /archive. | Expected: product archived and not customer-visible.
+OWN-051 | API | PLANNED | Archived product cannot be ordered | Steps: customer orders archived product. | Expected: API rejects.
+OWN-052 | UI/API | PLANNED | Categories page loads | Steps: visit /owner/categories. | Expected: GET /api/admin/products/categories shows active and inactive categories with counts.
+OWN-053 | UI/API | AUTOMATED_PASS | Admin categories include inactive counters | Steps: get admin categories. | Expected: inactive categories included and counters returned.
+OWN-054 | UI/API | PLANNED | Create category | Steps: enter name, optional slug/description/image/order and save. | Expected: category created.
+OWN-055 | UI/API | PLANNED | Create category auto slug | Steps: leave slug empty. | Expected: backend generates slug.
+OWN-056 | UI/API | PLANNED | Create duplicate category slug | Steps: use existing slug. | Expected: API rejects duplicate.
+OWN-057 | UI/API | PLANNED | Category image upload | Steps: upload category image. | Expected: URL returned and saved.
+OWN-058 | UI/API | AUTOMATED_PASS | Category update payload | Steps: update category fields. | Expected: PUT /admin/products/categories/{id} body matches UI state.
+OWN-059 | UI/API | AUTOMATED_PASS | Toggle category active | Steps: set active=false. | Expected: PATCH active=false endpoint called and category returns inactive.
+OWN-060 | UI/API | PLANNED | Disable category with products | Steps: deactivate category that owns products. | Expected: products remain in DB/admin list, hidden from public products/categories, visible count becomes 0.
+OWN-061 | API | AUTOMATED_PASS | Disabled category hides products from public | Steps: product under inactive category. | Expected: public product service excludes it.
+OWN-062 | API | AUTOMATED_PASS | Disabled category order blocked | Steps: order product under inactive category. | Expected: API rejects and stock unchanged.
+OWN-063 | UI/API | PLANNED | Re-enable category with products | Steps: activate category. | Expected: eligible products become customer-visible again.
+OWN-064 | UI/API | PLANNED | Owner orders page loads | Steps: visit /owner/orders. | Expected: GET /api/admin/orders returns all orders.
+OWN-065 | UI/API | PLANNED | Owner order search | Steps: search order number/customer. | Expected: filtered list returned.
+OWN-066 | UI/API | PLANNED | Owner order status filter pending | Steps: open /owner/orders?status=pending. | Expected: only pending orders shown.
+OWN-067 | UI/API | PLANNED | Owner order status filter preparing/ready/shipped/completed/cancelled | Steps: use status filters. | Expected: only selected status shown.
+OWN-068 | UI/API | PLANNED | Approve order deducts stock | Steps: pending order quantity 2, product stock 5, set approved. | Expected: stock becomes 3 and order stockDeducted true.
+OWN-069 | API | AUTOMATED_PASS | Approved order deducts stock once | Steps: approved then received. | Expected: stock deducted only once.
+OWN-070 | UI/API | PLANNED | Received order deducts stock | Steps: pending order set received directly. | Expected: stock deducted once.
+OWN-071 | UI/API | PLANNED | Preparing/ready/shipped/completed after approval | Steps: move through statuses. | Expected: no extra deduction after first deduction.
+OWN-072 | UI/API | PLANNED | Cancel pending order | Steps: pending to cancelled. | Expected: no stock deduction/restoration.
+OWN-073 | UI/API | PLANNED | Reject pending order | Steps: pending to rejected. | Expected: no stock deduction.
+OWN-074 | UI/API | PLANNED | Cancel approved order restores stock | Steps: approve then cancel. | Expected: stock restored.
+OWN-075 | API | AUTOMATED_PASS | Cancelled after approval restores stock | Steps: service approve then cancel. | Expected: stock returns to original and stockDeducted false.
+OWN-076 | UI/API | PLANNED | Reject approved order restores stock | Steps: approve then reject. | Expected: stock restored.
+OWN-077 | UI/API | PLANNED | Approve order with insufficient current stock | Steps: stock reduced below order quantity before approval. | Expected: API rejects approval and stock unchanged.
+OWN-078 | UI/API | PLANNED | Owner order owner note | Steps: update status with note if supported. | Expected: note stored and visible to customer.
+OWN-079 | UI/API | PLANNED | Owner customers page loads | Steps: visit /owner/customers. | Expected: GET /api/admin/customers shows registered customers.
+OWN-080 | UI/API | PLANNED | Owner customer search | Steps: search name/phone/email/username. | Expected: client list filters.
+OWN-081 | UI/API | PLANNED | Owner customer totals | Steps: customer has completed/pending orders. | Expected: orders count and total spent match non-cancelled/non-rejected orders.
+OWN-082 | UI/API | PLANNED | Owner reviews placeholder route | Steps: visit /owner/reviews. | Expected: current static placeholder renders; future owner moderation cases remain planned.
+OWN-083 | UI | PLANNED | Owner profile placeholder route | Steps: visit /owner/profile. | Expected: placeholder renders without crash.
+OWN-084 | UI | PLANNED | Owner settings placeholder route | Steps: visit /owner/settings. | Expected: placeholder renders without crash.
+OWN-085 | UI | PLANNED | Owner password placeholder route | Steps: visit /owner/password. | Expected: placeholder renders without crash.
+OWN-086 | API | PLANNED | Owner endpoints reject guest | Steps: call every /api/admin/* endpoint without token. | Expected: 401 Unauthorized.
+OWN-087 | API | PLANNED | Owner endpoints reject customer | Steps: call every /api/admin/* endpoint with Customer token. | Expected: 403 Forbidden.
+OWN-088 | UI | PLANNED | Owner pages responsive | Steps: inspect dashboard/products/categories/orders/customers on mobile. | Expected: tables scroll, filters wrap, no text overlap.
+
+======================================================================
+AUTHORIZATION AND CROSS-ROLE MATRIX
+======================================================================
+
+AUTH-001 | API | PLANNED | Public endpoints stay public | Steps: call GET /api/products and /api/products/categories without token. | Expected: 200 OK.
+AUTH-002 | API | PLANNED | Auth register/login stay public | Steps: call POST /api/auth/register and /api/auth/login without token. | Expected: endpoint accepts request body and validates normally.
+AUTH-003 | API | PLANNED | GET /api/auth/me requires auth | Steps: call without token. | Expected: 401.
+AUTH-004 | API | PLANNED | Customer endpoints require Customer role | Steps: call /api/customer/* with Owner token. | Expected: 403.
+AUTH-005 | API | PLANNED | Customer endpoints reject guest | Steps: call /api/customer/* without token. | Expected: 401.
+AUTH-006 | API | PLANNED | Customer order endpoints require Customer role | Steps: call GET/POST /api/customer/orders with Owner token. | Expected: 403.
+AUTH-007 | API | PLANNED | Admin product endpoints require Owner role | Steps: call /api/admin/products* with Customer token. | Expected: 403.
+AUTH-008 | API | PLANNED | Admin order endpoints require Owner role | Steps: call /api/admin/orders* with Customer token. | Expected: 403.
+AUTH-009 | API | PLANNED | Admin customer/dashboard endpoints require Owner role | Steps: call with Customer token. | Expected: 403.
+AUTH-010 | UI | PLANNED | Expired/invalid token handling | Steps: set bad token and call authenticated API. | Expected: token cleared and redirected to /login.
+AUTH-011 | UI | PLANNED | Role-aware protected routes | Steps: Customer hits OwnerRoute, Owner hits CustomerRoute. | Expected: each redirects to their correct dashboard.
+AUTH-012 | UI | PLANNED | Logout clears local auth state | Steps: logout then refresh. | Expected: no stored user/token, header becomes guest state.
+
+======================================================================
+DATA, DATABASE, AND SEEDING
+======================================================================
+
+DATA-001 | DB | PLANNED | Required migrations applied | Steps: inspect __EFMigrationsHistory. | Expected: product catalog, order management, customer addresses/reviews migrations present.
+DATA-002 | DB | PLANNED | Seed owner exists | Steps: query owner by configured username/email. | Expected: Owner role user exists and is active.
+DATA-003 | DB | PLANNED | Demo customer exists | Steps: query customer_demo. | Expected: Customer role user exists and is active.
+DATA-004 | DB | PLANNED | Five named customers exist | Steps: query Mayar, Masara, Celine, Mais, Raheeq seed users. | Expected: all exist with Customer role.
+DATA-005 | DB | PLANNED | Deleted category stays deleted | Steps: query names/slugs for تنصيف 1/تصنيف 1. | Expected: zero matches.
+DATA-006 | DB | PLANNED | Products have valid category FK | Steps: left join products to categories. | Expected: no products with missing category.
+DATA-007 | DB | PLANNED | Order items have valid order/product FK | Steps: check OrderItems joins. | Expected: no orphan order items.
+DATA-008 | DB | PLANNED | Product reviews have valid customer/product FK | Steps: check ProductReviews joins. | Expected: no orphan reviews.
+DATA-009 | DB | PLANNED | Customer addresses have valid customer FK | Steps: check CustomerAddresses joins. | Expected: no orphan addresses.
+DATA-010 | DB | PLANNED | Unique phone number enforced | Steps: insert/update duplicate PhoneNumber through API. | Expected: rejected.
+DATA-011 | DB | PLANNED | Product slug uniqueness enforced | Steps: create duplicate slug through API. | Expected: rejected.
+DATA-012 | DB | PLANNED | Category slug uniqueness enforced | Steps: create duplicate slug through API. | Expected: rejected.
+DATA-013 | DB | PLANNED | One review per customer/product | Steps: save two reviews for same customer/product. | Expected: one row updated.
+DATA-014 | DB | PLANNED | Review rating check constraint | Steps: attempt rating 0 or 6. | Expected: rejected.
+DATA-015 | DB | PLANNED | Customer address default invariant | Steps: create/update defaults. | Expected: UI/API keep only one default per customer.
+
+======================================================================
+FRONTEND API SERVICE CONTRACTS
+======================================================================
+
+FAPI-001 | UI | AUTOMATED_PASS | Customer profile/dashboard API paths | Steps: call customerApi profile/update/dashboard methods. | Expected: correct endpoints and HTTP methods.
+FAPI-002 | UI | AUTOMATED_PASS | Customer address API paths | Steps: call get/create/update/delete address methods. | Expected: correct endpoints and HTTP methods.
+FAPI-003 | UI | AUTOMATED_PASS | Customer review API paths | Steps: call get/save/delete review methods. | Expected: correct endpoints and HTTP methods.
+FAPI-004 | UI | AUTOMATED_PASS | Order API paths | Steps: call create/list/update/order owner stats/customers methods. | Expected: correct endpoints and payloads.
+FAPI-005 | UI | AUTOMATED_PASS | Admin product API creation path | Steps: call createAdminProduct. | Expected: POST /admin/products with normalized body.
+FAPI-006 | UI | AUTOMATED_PASS | Admin category API paths | Steps: get/update/toggle categories. | Expected: correct endpoints and payloads.
+FAPI-007 | UI | PLANNED | API client attaches token | Steps: with stored token call protected service. | Expected: Authorization bearer header present.
+FAPI-008 | UI | PLANNED | API client omits token for public products | Steps: call public product APIs. | Expected: requiresAuth=false and no auth dependency.
+FAPI-009 | UI | PLANNED | API client handles non-OK response | Steps: backend returns validation payload. | Expected: thrown payload reaches form error display.
+FAPI-010 | UI | PLANNED | API client 401 behavior | Steps: backend returns 401. | Expected: token/user cleared and location assigned to login.
+
+======================================================================
+PRODUCT VISIBILITY AND CUSTOMER-FACING CATALOG
+======================================================================
+
+CAT-001 | API | PLANNED | Active category appears publicly | Steps: active category with visible product. | Expected: in /api/products/categories.
+CAT-002 | API | PLANNED | Inactive category hidden publicly | Steps: inactive category. | Expected: not in public categories.
+CAT-003 | API | AUTOMATED_PASS | Product under inactive category hidden | Steps: product service with inactive category. | Expected: product excluded.
+CAT-004 | API | PLANNED | Draft product hidden publicly | Steps: draft status product. | Expected: not in public product list.
+CAT-005 | API | PLANNED | Hidden product hidden publicly | Steps: hidden status product. | Expected: not in public product list.
+CAT-006 | API | PLANNED | Archived product hidden publicly | Steps: archived product. | Expected: not in public product list.
+CAT-007 | API | PLANNED | Out-of-stock product visible but not orderable if configured | Steps: out-of-stock status. | Expected: product visibility matches status rule and order validation.
+CAT-008 | UI | PLANNED | Product image fallback | Steps: product with no image. | Expected: placeholder renders.
+CAT-009 | UI | PLANNED | Price label quote/hidden | Steps: product with quote pricing. | Expected: user sees label not numeric price.
+CAT-010 | UI | PLANNED | Long product names/descriptions | Steps: product with long text. | Expected: cards clamp text and layout remains stable.
+
+======================================================================
+NON-FUNCTIONAL AND UX EDGE CASES
+======================================================================
+
+UX-001 | UI | PLANNED | Global RTL layout | Steps: inspect all Arabic pages. | Expected: alignment and text direction correct.
+UX-002 | UI | PLANNED | Long Arabic labels in buttons | Steps: test mobile and desktop. | Expected: no text overflow.
+UX-003 | UI | PLANNED | Loading states | Steps: throttle API responses. | Expected: loading spinners/states show and disappear.
+UX-004 | UI | PLANNED | Error states | Steps: force API failure. | Expected: specific error message displayed.
+UX-005 | UI | PLANNED | Empty states | Steps: empty products/orders/customers/addresses/reviews. | Expected: clear empty messages.
+UX-006 | UI | PLANNED | Duplicate submit prevention | Steps: click save/order button repeatedly. | Expected: disabled/loading state prevents duplicate calls.
+UX-007 | UI | PLANNED | Upload-in-progress save prevention | Steps: product image uploading then save. | Expected: save disabled until upload completes.
+UX-008 | UI | PLANNED | Browser refresh keeps auth session | Steps: login then refresh. | Expected: stored token/user reload and route remains accessible.
+UX-009 | UI | PLANNED | Browser refresh keeps cart | Steps: add item then refresh. | Expected: cart count and items persist.
+UX-010 | UI | PLANNED | Multi-tab cart update | Steps: update cart in another tab. | Expected: storage event updates count.
+UX-011 | UI | PLANNED | Network offline while saving | Steps: simulate offline and submit form. | Expected: user sees error and data remains in form.
+UX-012 | UI | PLANNED | Mobile table scrolling | Steps: owner product/order/customer tables on narrow screen. | Expected: horizontal scroll, no clipped action controls.
+UX-013 | UI | PLANNED | Keyboard form navigation | Steps: tab through forms. | Expected: focus order logical and buttons reachable.
+UX-014 | UI | PLANNED | Image URL resolution | Steps: relative and absolute media URLs. | Expected: images resolve correctly in public and admin pages.
+UX-015 | UI | PLANNED | Date localization | Steps: display order/review/customer dates. | Expected: dates readable and no invalid date output.
+
+======================================================================
+AUTOMATED COVERAGE SUMMARY AVAILABLE NOW
+======================================================================
+
+Backend automated test areas:
+- ProductService public category/product visibility.
+- ProductManagementService admin category/product management and inactive-category visible counters.
+- OrderService order creation, stock deduction only after approval/received-type statuses, idempotent deduction, stock restore after cancellation, disabled category rejection.
+- CustomerService dashboard counters, address default behavior, review create/update behavior.
+
+Frontend automated test areas:
+- Authentication form validation and register request mapping.
+- Admin product service payload and category endpoint contracts.
+- Product draft normalization.
+- Order API endpoint contracts.
+- Cart storage behavior.
+- Customer API endpoint contracts.
+
+Recommended next automation priority:
+1. Browser E2E for Guest -> cart -> login -> checkout -> customer orders.
+2. Browser E2E for Owner -> approve order -> stock deduction visible in admin products.
+3. Browser E2E for Owner category deactivate/reactivate with public catalog assertions.
+4. Browser E2E for Customer addresses/reviews forms.
+5. Authorization contract tests that enumerate every controller action and expected role.
+
+======================================================================
+EXECUTION UPDATE - 2026-07-21 23:55
+======================================================================
+
+Implemented after this matrix was first created:
+- Added missing Owner account API endpoints:
+  - GET /api/admin/account/profile
+  - PUT /api/admin/account/profile
+  - PUT /api/admin/account/password
+- Added missing Owner store settings API endpoints:
+  - GET /api/admin/settings
+  - PUT /api/admin/settings
+- Added missing Owner review moderation API endpoints:
+  - GET /api/admin/reviews
+  - PATCH /api/admin/reviews/{reviewId}/visibility
+  - DELETE /api/admin/reviews/{reviewId}
+- Added StoreSettings database table and applied migration:
+  - 20260720235547_AddOwnerSettingsAndReviewModeration
+- Replaced Owner placeholder pages with real connected pages:
+  - /owner/reviews
+  - /owner/profile
+  - /owner/settings
+  - /owner/password
+- Added Owner service/API automated coverage:
+  - owner settings default creation and update
+  - owner review hide/show
+  - owner review delete
+  - owner password mismatch rejection
+  - owner frontend API endpoint contracts
+- Added authorization surface automated coverage:
+  - admin controllers require Owner role
+  - customer controllers require Customer role
+  - auth and public product controllers stay public
+  - HTTP route uniqueness across controller surface
+- Added apiClient automated coverage:
+  - protected requests attach bearer token
+  - public requests omit Authorization when requiresAuth=false
+  - non-OK backend payloads are thrown
+  - 401 clears auth storage and redirects to /login
+
+Executed verification:
+- Backend build: PASS
+- Backend automated tests: PASS, 20/20
+- Frontend automated tests: PASS, 29/29
+- Frontend production build: PASS
+- Frontend lint: PASS
+- Database migration update: PASS
+- SQL verification: StoreSettings table exists
+- Local route verification: /owner/reviews, /owner/profile, /owner/settings, /owner/password returned HTTP 200
+
+Coverage status changes:
+- OWN-082 is now implemented and covered by owner review endpoints/service/API tests.
+- OWN-083 is now implemented as a connected Owner profile page/API.
+- OWN-084 is now implemented as a connected Owner settings page/API.
+- OWN-085 is now implemented as a connected Owner password page/API.
+- AUTH-001 through AUTH-009 now have automated controller authorization metadata coverage.
+- FAPI-007 through FAPI-010 now have automated apiClient coverage.

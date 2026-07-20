@@ -6,6 +6,7 @@ using namera_API.Models.Customers;
 using namera_API.Models.Orders;
 using namera_API.Models.Products.Categories;
 using namera_API.Models.Products.Products;
+using namera_API.Models.Store;
 
 namespace namera_API.Data;
 
@@ -26,6 +27,7 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     public DbSet<ProductReview> ProductReviews => Set<ProductReview>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<StoreSettings> StoreSettings => Set<StoreSettings>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
