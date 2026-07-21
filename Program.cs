@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using namera_API.Common.Responses;
 using namera_API.Data;
 using namera_API.Data.Seed;
 using namera_API.Extensions.ServiceCollection;
@@ -27,6 +28,34 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseCors("ReactFrontend");
+
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        var logger = context.RequestServices
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("UnhandledRequestException");
+
+        logger.LogError(ex, "Unhandled exception while processing {Method} {Path}", context.Request.Method, context.Request.Path);
+
+        if (context.Response.HasStarted)
+        {
+            throw;
+        }
+
+        context.Response.Clear();
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json; charset=utf-8";
+
+        await context.Response.WriteAsJsonAsync(ApiResponse<object>.Fail(
+            "حدث خطأ في الخادم أثناء معالجة الطلب. راجع السجل أو تأكد من تحديث قاعدة البيانات."));
+    }
+});
 
 app.UseAuthentication();
 app.UseAuthorization();
