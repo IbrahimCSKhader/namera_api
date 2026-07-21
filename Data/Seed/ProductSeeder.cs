@@ -53,6 +53,10 @@ public static class ProductSeeder
         {
             var product = await dbContext.Products
                 .Include(item => item.Images)
+                .Include(item => item.OptionGroups)
+                    .ThenInclude(group => group.Values)
+                .Include(item => item.CustomizationFields)
+                    .ThenInclude(field => field.Choices)
                 .FirstOrDefaultAsync(item => item.Slug == seededProduct.Slug);
 
             if (product is null)
@@ -87,6 +91,16 @@ public static class ProductSeeder
                     IsPrimary = image.IsPrimary,
                     DisplayOrder = image.DisplayOrder
                 });
+            }
+
+            if (seededProduct.OptionGroups.Count > 0 || seededProduct.CustomizationFields.Count > 0)
+            {
+                dbContext.ProductOptionGroups.RemoveRange(product.OptionGroups);
+                dbContext.ProductCustomizationFields.RemoveRange(product.CustomizationFields);
+                product.OptionGroups.Clear();
+                product.CustomizationFields.Clear();
+
+                CopyCustomizations(product, seededProduct);
             }
         }
 
@@ -137,7 +151,8 @@ public static class ProductSeeder
             CreateProduct(embroidery, "\u0637\u0627\u0631\u0629 \u062a\u0637\u0631\u064a\u0632 \u0648\u0631\u062f\u064a\u0629", "floral-embroidery-hoop", 95, true, 7, 5),
             CreateProduct(embroidery, "\u0647\u062f\u064a\u0629 \u062a\u0637\u0631\u064a\u0632 \u0648\u0631\u064a\u0632\u0646", "embroidery-resin-gift", 110, false, 8, 6),
             CreateProduct(watches, "\u0633\u0627\u0639\u0629 \u0631\u064a\u0632\u0646 \u0628\u062d\u0631\u064a\u0629", "ocean-resin-clock", 160, true, 9, 7),
-            CreateProduct(watches, "\u0633\u0627\u0639\u0629 \u064a\u062f \u0628\u062a\u0635\u0645\u064a\u0645 \u0631\u064a\u0632\u0646", "resin-watch-face", 140, false, 10, 5)
+            CreateProduct(watches, "\u0633\u0627\u0639\u0629 \u064a\u062f \u0628\u062a\u0635\u0645\u064a\u0645 \u0631\u064a\u0632\u0646", "resin-watch-face", 140, false, 10, 5),
+            CreatePersonalizedTrayProduct(flower)
         ];
     }
 
@@ -180,6 +195,133 @@ public static class ProductSeeder
         }
 
         return product;
+    }
+
+    private static Product CreatePersonalizedTrayProduct(ProductCategory category)
+    {
+        var product = CreateProduct(
+            category,
+            "\u0635\u064a\u0646\u064a\u0629 \u0631\u064a\u0632\u0646 \u0634\u062e\u0635\u064a\u0629 \u0628\u0627\u0644\u0627\u0633\u0645",
+            "personalized-name-resin-tray",
+            135,
+            true,
+            11,
+            6);
+
+        product.ShortDescription = "\u0635\u064a\u0646\u064a\u0629 \u0631\u064a\u0632\u0646 \u0645\u0635\u0646\u0648\u0639\u0629 \u062d\u0633\u0628 \u0627\u0644\u0637\u0644\u0628 \u0645\u0639 \u0627\u0633\u0645 \u0623\u0648 \u0639\u0628\u0627\u0631\u0629 \u062e\u0627\u0635\u0629.";
+        product.Description = "\u0635\u064a\u0646\u064a\u0629 \u0631\u064a\u0632\u0646 \u0623\u0646\u064a\u0642\u0629 \u0644\u0644\u0647\u062f\u0627\u064a\u0627 \u0648\u0627\u0644\u0645\u0646\u0627\u0633\u0628\u0627\u062a\u060c \u064a\u0645\u0643\u0646 \u062a\u062e\u0635\u064a\u0635 \u0644\u0648\u0646\u0647\u0627\u060c \u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0645\u0643\u062a\u0648\u0628 \u0639\u0644\u064a\u0647\u0627\u060c \u0648\u0637\u0631\u064a\u0642\u0629 \u0627\u0644\u062a\u063a\u0644\u064a\u0641.";
+        product.MadeToOrder = true;
+        product.InventoryTrackingEnabled = false;
+        product.Quantity = null;
+        product.LowStockThreshold = 0;
+        product.HasVariants = true;
+        product.ShowOnHomepage = true;
+        product.ShowInSuggestions = true;
+        product.IsNew = true;
+        product.MaxPreparationDays = 7;
+        product.MinPreparationDays = 4;
+        product.PreparationNote = "\u064a\u062a\u0645 \u062a\u0646\u0641\u064a\u0630 \u0627\u0644\u0637\u0644\u0628 \u064a\u062f\u0648\u064a\u0627 \u062d\u0633\u0628 \u0627\u0644\u062a\u062e\u0635\u064a\u0635\u0627\u062a \u0627\u0644\u0645\u062e\u062a\u0627\u0631\u0629.";
+
+        product.OptionGroups.Add(new ProductOptionGroup
+        {
+            Name = "\u0644\u0648\u0646 \u0627\u0644\u062a\u0635\u0645\u064a\u0645",
+            Description = "\u0627\u062e\u062a\u0627\u0631\u064a \u0627\u0644\u0644\u0648\u0646 \u0627\u0644\u0623\u0642\u0631\u0628 \u0644\u0630\u0648\u0642\u0643.",
+            IsRequired = true,
+            IsActive = true,
+            DisplayOrder = 1,
+            Values =
+            {
+                new ProductOptionValue { Label = "\u0648\u0631\u062f\u064a \u0646\u0627\u0639\u0645", ExtraPrice = 0, DisplayOrder = 1, IsActive = true, IsDefault = true },
+                new ProductOptionValue { Label = "\u0628\u0646\u0641\u0633\u062c\u064a \u0644\u0627\u0645\u0639", ExtraPrice = 10, DisplayOrder = 2, IsActive = true },
+                new ProductOptionValue { Label = "\u0630\u0647\u0628\u064a \u0648\u0634\u0641\u0627\u0641", ExtraPrice = 15, DisplayOrder = 3, IsActive = true }
+            }
+        });
+
+        product.CustomizationFields.Add(new ProductCustomizationField
+        {
+            Label = "\u0627\u0644\u0627\u0633\u0645 \u0623\u0648 \u0627\u0644\u0639\u0628\u0627\u0631\u0629",
+            FieldType = ProductCustomizationFieldType.ShortText,
+            Description = "\u0627\u0644\u0646\u0635 \u0627\u0644\u0630\u064a \u0633\u064a\u0638\u0647\u0631 \u0639\u0644\u0649 \u0627\u0644\u0635\u064a\u0646\u064a\u0629.",
+            Placeholder = "\u0645\u062b\u0627\u0644: Namera",
+            IsRequired = true,
+            DisplayOrder = 2,
+            AdditionalPrice = 0,
+            MinLength = 2,
+            MaxLength = 40,
+            IsActive = true
+        });
+
+        product.CustomizationFields.Add(new ProductCustomizationField
+        {
+            Label = "\u0627\u0644\u062a\u063a\u0644\u064a\u0641",
+            FieldType = ProductCustomizationFieldType.SingleSelect,
+            Description = "\u0627\u062e\u062a\u0627\u0631\u064a \u0637\u0631\u064a\u0642\u0629 \u062a\u062c\u0647\u064a\u0632 \u0627\u0644\u0647\u062f\u064a\u0629.",
+            IsRequired = true,
+            DisplayOrder = 3,
+            AdditionalPrice = 0,
+            IsActive = true,
+            Choices =
+            {
+                new ProductCustomizationChoice { Label = "\u0628\u062f\u0648\u0646 \u062a\u063a\u0644\u064a\u0641", AdditionalPrice = 0, DisplayOrder = 1, IsActive = true },
+                new ProductCustomizationChoice { Label = "\u0643\u0631\u062a \u0647\u062f\u064a\u0629", AdditionalPrice = 8, DisplayOrder = 2, IsActive = true },
+                new ProductCustomizationChoice { Label = "\u0635\u0646\u062f\u0648\u0642 \u0641\u0627\u062e\u0631", AdditionalPrice = 20, DisplayOrder = 3, IsActive = true }
+            }
+        });
+
+        return product;
+    }
+
+    private static void CopyCustomizations(Product product, Product seededProduct)
+    {
+        foreach (var group in seededProduct.OptionGroups)
+        {
+            product.OptionGroups.Add(new ProductOptionGroup
+            {
+                Name = group.Name,
+                Description = group.Description,
+                IsRequired = group.IsRequired,
+                IsActive = group.IsActive,
+                DisplayOrder = group.DisplayOrder,
+                Values = group.Values.Select(value => new ProductOptionValue
+                {
+                    Label = value.Label,
+                    ExtraPrice = value.ExtraPrice,
+                    DisplayOrder = value.DisplayOrder,
+                    IsActive = value.IsActive,
+                    IsDefault = value.IsDefault,
+                    StockQuantity = value.StockQuantity,
+                    Sku = value.Sku,
+                    ImageUrl = value.ImageUrl
+                }).ToList()
+            });
+        }
+
+        foreach (var field in seededProduct.CustomizationFields)
+        {
+            product.CustomizationFields.Add(new ProductCustomizationField
+            {
+                Label = field.Label,
+                FieldType = field.FieldType,
+                Description = field.Description,
+                Placeholder = field.Placeholder,
+                IsRequired = field.IsRequired,
+                DisplayOrder = field.DisplayOrder,
+                AdditionalPrice = field.AdditionalPrice,
+                MinLength = field.MinLength,
+                MaxLength = field.MaxLength,
+                MinValue = field.MinValue,
+                MaxValue = field.MaxValue,
+                AllowedFilesCsv = field.AllowedFilesCsv,
+                IsActive = field.IsActive,
+                Choices = field.Choices.Select(choice => new ProductCustomizationChoice
+                {
+                    Label = choice.Label,
+                    AdditionalPrice = choice.AdditionalPrice,
+                    DisplayOrder = choice.DisplayOrder,
+                    IsActive = choice.IsActive
+                }).ToList()
+            });
+        }
     }
 
     private static IEnumerable<(string Url, int Order)> PickImages(int seed)
