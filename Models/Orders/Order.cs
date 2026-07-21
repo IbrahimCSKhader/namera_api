@@ -5,7 +5,7 @@ namespace namera_API.Models.Orders;
 
 public sealed class Order : BaseEntity
 {
-    public Guid CustomerId { get; set; }
+    public Guid? CustomerId { get; set; }
     public string OrderNumber { get; set; } = string.Empty;
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
     public decimal Subtotal { get; set; }
@@ -21,6 +21,6 @@ public sealed class Order : BaseEntity
     public DateTime? CancelledAt { get; set; }
     public string? OwnerNote { get; set; }
 
-    public ApplicationUser Customer { get; set; } = null!;
+    public ApplicationUser? Customer { get; set; }
     public ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
 }

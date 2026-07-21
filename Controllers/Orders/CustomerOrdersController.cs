@@ -27,6 +27,7 @@ public sealed class CustomerOrdersController : ControllerBase
     }
 
     [HttpPost]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<OrderResponseDto>>> CreateOrder(CreateOrderRequestDto request)
     {
         var response = await _orderService.CreateOrderAsync(User, request);

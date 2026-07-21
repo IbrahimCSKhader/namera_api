@@ -27,10 +27,6 @@ public sealed class OrderService : IOrderService
     public async Task<ApiResponse<OrderResponseDto>> CreateOrderAsync(ClaimsPrincipal principal, CreateOrderRequestDto request)
     {
         var customer = await GetUserAsync(principal);
-        if (customer is null)
-        {
-            return ApiResponse<OrderResponseDto>.Fail("تعذر العثور على حساب الزبون");
-        }
 
         var normalizedItems = request.Items
             .Where(item => item.ProductId != Guid.Empty)
@@ -52,6 +48,15 @@ public sealed class OrderService : IOrderService
         if (normalizedItems.Any(item => item.Quantity < 1))
         {
             return ApiResponse<OrderResponseDto>.Fail("كمية كل منتج يجب أن تكون 1 على الأقل");
+        }
+
+        var customerName = NormalizeNullableText(request.CustomerName) ?? NormalizeNullableText($"{customer?.FirstName} {customer?.LastName}");
+        var customerPhoneNumber = NormalizeNullableText(request.CustomerPhoneNumber) ?? NormalizeNullableText(customer?.PhoneNumber);
+        var shippingAddress = NormalizeNullableText(request.ShippingAddress) ?? NormalizeNullableText(customer?.Address);
+        var customerErrors = ValidateCustomerDetails(customerName, customerPhoneNumber, shippingAddress);
+        if (customerErrors.Count > 0)
+        {
+            return ApiResponse<OrderResponseDto>.Fail("أكمل معلومات التواصل قبل إرسال الطلب", customerErrors);
         }
 
         var productIds = normalizedItems.Select(item => item.ProductId).ToList();
@@ -83,10 +88,10 @@ public sealed class OrderService : IOrderService
         var order = new Order
         {
             Id = Guid.NewGuid(),
-            CustomerId = customer.Id,
-            CustomerName = $"{customer.FirstName} {customer.LastName}".Trim(),
-            CustomerPhoneNumber = customer.PhoneNumber ?? string.Empty,
-            ShippingAddress = string.IsNullOrWhiteSpace(request.ShippingAddress) ? customer.Address : request.ShippingAddress.Trim(),
+            CustomerId = customer?.Id,
+            CustomerName = customerName!,
+            CustomerPhoneNumber = customerPhoneNumber!,
+            ShippingAddress = shippingAddress!,
             Notes = NormalizeNullableText(request.Notes),
             Status = OrderStatus.Pending,
             Currency = "ILS",
@@ -221,8 +226,8 @@ public sealed class OrderService : IOrderService
         var customerIds = customers.Select(customer => customer.Id).ToList();
         var orderStats = await _dbContext.Orders
             .AsNoTracking()
-            .Where(order => customerIds.Contains(order.CustomerId))
-            .GroupBy(order => order.CustomerId)
+            .Where(order => order.CustomerId.HasValue && customerIds.Contains(order.CustomerId.Value))
+            .GroupBy(order => order.CustomerId!.Value)
             .Select(group => new
             {
                 CustomerId = group.Key,
@@ -369,6 +374,43 @@ public sealed class OrderService : IOrderService
                 errors.Add($"المنتج {product.Name} غير ظاهر للطلبات العامة.");
             }
 
+        }
+
+        return errors;
+    }
+
+    private static List<string> ValidateCustomerDetails(string? customerName, string? customerPhoneNumber, string? shippingAddress)
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(customerName))
+        {
+            errors.Add("اسم الزبون مطلوب.");
+        }
+
+        if (string.IsNullOrWhiteSpace(customerPhoneNumber))
+        {
+            errors.Add("رقم الهاتف مطلوب.");
+        }
+
+        if (string.IsNullOrWhiteSpace(shippingAddress))
+        {
+            errors.Add("عنوان التوصيل مطلوب.");
+        }
+
+        if (customerName?.Length > 180)
+        {
+            errors.Add("اسم الزبون طويل جدًا.");
+        }
+
+        if (customerPhoneNumber?.Length > 30)
+        {
+            errors.Add("رقم الهاتف طويل جدًا.");
+        }
+
+        if (shippingAddress?.Length > 500)
+        {
+            errors.Add("عنوان التوصيل طويل جدًا.");
         }
 
         return errors;

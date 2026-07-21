@@ -66,6 +66,47 @@ public sealed class OrderServiceTests
     }
 
     [Fact]
+    public async Task CreateOrderAsync_AllowsGuestCheckoutWithContactDetails()
+    {
+        var fixture = await CreateFixtureAsync();
+        var product = await SeedProductAsync(fixture.DbContext, quantity: 5);
+
+        var response = await fixture.Service.CreateOrderAsync(new ClaimsPrincipal(), new CreateOrderRequestDto
+        {
+            CustomerName = "Guest Customer",
+            CustomerPhoneNumber = "0591234567",
+            ShippingAddress = "Guest address",
+            Items = [new CreateOrderItemRequestDto { ProductId = product.Id, Quantity = 1 }]
+        });
+
+        Assert.True(response.Success);
+        Assert.Equal("Guest Customer", response.Data!.CustomerName);
+        Assert.Equal("0591234567", response.Data.CustomerPhoneNumber);
+        Assert.Equal("Guest address", response.Data.ShippingAddress);
+
+        var order = await fixture.DbContext.Orders.FindAsync(response.Data.Id);
+        Assert.NotNull(order);
+        Assert.Null(order!.CustomerId);
+    }
+
+    [Fact]
+    public async Task CreateOrderAsync_GuestCheckoutRequiresContactDetails()
+    {
+        var fixture = await CreateFixtureAsync();
+        var product = await SeedProductAsync(fixture.DbContext, quantity: 5);
+
+        var response = await fixture.Service.CreateOrderAsync(new ClaimsPrincipal(), new CreateOrderRequestDto
+        {
+            Items = [new CreateOrderItemRequestDto { ProductId = product.Id, Quantity = 1 }]
+        });
+
+        Assert.False(response.Success);
+        Assert.Contains(response.Errors, error => error.Contains("اسم الزبون", StringComparison.Ordinal));
+        Assert.Contains(response.Errors, error => error.Contains("رقم الهاتف", StringComparison.Ordinal));
+        Assert.Contains(response.Errors, error => error.Contains("عنوان التوصيل", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task UpdateOrderStatusAsync_Approved_DoesNotDeductStock()
     {
         var fixture = await CreateFixtureAsync();

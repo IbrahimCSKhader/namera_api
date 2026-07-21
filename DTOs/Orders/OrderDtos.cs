@@ -3,6 +3,8 @@ namespace namera_API.DTOs.Orders;
 public sealed class CreateOrderRequestDto
 {
     public IReadOnlyList<CreateOrderItemRequestDto> Items { get; init; } = [];
+    public string? CustomerName { get; init; }
+    public string? CustomerPhoneNumber { get; init; }
     public string? ShippingAddress { get; init; }
     public string? Notes { get; init; }
 }
