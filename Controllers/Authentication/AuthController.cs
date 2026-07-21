@@ -18,14 +18,38 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Register(RegisterRequestDto request)
+    public async Task<ActionResult<ApiResponse<RegistrationResponseDto>>> Register(RegisterRequestDto request)
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ApiResponse<AuthResponseDto>.Fail("البيانات غير صالحة", GetModelErrors()));
+            return BadRequest(ApiResponse<RegistrationResponseDto>.Fail("البيانات غير صالحة", GetModelErrors()));
         }
 
         var response = await _authService.RegisterCustomerAsync(request);
+        return response.Success ? Ok(response) : BadRequest(response);
+    }
+
+    [HttpPost("confirm-email")]
+    public async Task<ActionResult<ApiResponse<bool>>> ConfirmEmail(ConfirmEmailRequestDto request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ApiResponse<bool>.Fail("البيانات غير صالحة", GetModelErrors()));
+        }
+
+        var response = await _authService.ConfirmEmailAsync(request);
+        return response.Success ? Ok(response) : BadRequest(response);
+    }
+
+    [HttpPost("resend-confirmation")]
+    public async Task<ActionResult<ApiResponse<bool>>> ResendEmailConfirmation(ResendEmailConfirmationRequestDto request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ApiResponse<bool>.Fail("البيانات غير صالحة", GetModelErrors()));
+        }
+
+        var response = await _authService.ResendEmailConfirmationAsync(request);
         return response.Success ? Ok(response) : BadRequest(response);
     }
 

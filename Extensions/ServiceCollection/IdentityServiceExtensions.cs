@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using namera_API.Data;
 using namera_API.Models.Identity;
+using namera_API.Configurations.Email;
 using namera_API.Services.Authentication;
 using namera_API.Services.Customer;
+using namera_API.Services.Email;
 using namera_API.Services.Orders;
 using namera_API.Services.Owner;
 using namera_API.Services.Products;
@@ -24,7 +26,8 @@ public static class IdentityServiceExtensions
         services
             .AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
             {
-                options.User.RequireUniqueEmail = false;
+                options.User.RequireUniqueEmail = true;
+                options.SignIn.RequireConfirmedEmail = true;
                 options.Password.RequiredLength = 8;
                 options.Password.RequireDigit = true;
                 options.Password.RequireLowercase = true;
@@ -37,10 +40,12 @@ public static class IdentityServiceExtensions
         return services;
     }
 
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
+        services.Configure<SmtpEmailSettings>(configuration.GetSection("Email:Smtp"));
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ICustomerService, CustomerService>();
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IOwnerAccountService, OwnerAccountService>();
         services.AddScoped<IProductService, ProductService>();

@@ -6,7 +6,9 @@ namespace namera_API.Services.Authentication;
 
 public interface IAuthService
 {
-    Task<ApiResponse<AuthResponseDto>> RegisterCustomerAsync(RegisterRequestDto request);
+    Task<ApiResponse<RegistrationResponseDto>> RegisterCustomerAsync(RegisterRequestDto request);
+    Task<ApiResponse<bool>> ConfirmEmailAsync(ConfirmEmailRequestDto request);
+    Task<ApiResponse<bool>> ResendEmailConfirmationAsync(ResendEmailConfirmationRequestDto request);
     Task<ApiResponse<AuthResponseDto>> LoginAsync(LoginRequestDto request);
     Task<ApiResponse<CurrentUserDto>> GetCurrentUserAsync(ClaimsPrincipal principal);
 }

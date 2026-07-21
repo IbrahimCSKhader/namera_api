@@ -16,9 +16,10 @@ public sealed class RegisterRequestDto
     [RegularExpression("^[a-zA-Z0-9_.-]{3,50}$", ErrorMessage = "اسم المستخدم يجب أن يكون 3 أحرف على الأقل ويحتوي أحرفاً أو أرقاماً فقط")]
     public string UserName { get; init; } = string.Empty;
 
+    [Required(ErrorMessage = "البريد الإلكتروني مطلوب")]
     [EmailAddress(ErrorMessage = "البريد الإلكتروني غير صالح")]
     [MaxLength(256, ErrorMessage = "البريد الإلكتروني طويل جداً")]
-    public string? Email { get; init; }
+    public string Email { get; init; } = string.Empty;
 
     [Required(ErrorMessage = "رقم الهاتف مطلوب")]
     [Phone(ErrorMessage = "رقم الهاتف غير صالح")]
@@ -35,4 +36,20 @@ public sealed class RegisterRequestDto
 
     [Required(ErrorMessage = "تأكيد كلمة المرور مطلوب")]
     public string ConfirmPassword { get; init; } = string.Empty;
+}
+
+public sealed class ConfirmEmailRequestDto
+{
+    [Required(ErrorMessage = "المستخدم مطلوب")]
+    public Guid UserId { get; init; }
+
+    [Required(ErrorMessage = "رمز التأكيد مطلوب")]
+    public string Token { get; init; } = string.Empty;
+}
+
+public sealed class ResendEmailConfirmationRequestDto
+{
+    [Required(ErrorMessage = "البريد الإلكتروني مطلوب")]
+    [EmailAddress(ErrorMessage = "البريد الإلكتروني غير صالح")]
+    public string Email { get; init; } = string.Empty;
 }
