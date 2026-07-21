@@ -32,6 +32,12 @@ public sealed class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
         builder.Property(item => item.ImageUrl)
             .HasMaxLength(1000);
 
+        builder.Property(item => item.CustomizationSummary)
+            .HasMaxLength(1200);
+
+        builder.Property(item => item.CustomizationDetailsJson)
+            .HasMaxLength(4000);
+
         builder.Property(item => item.UnitPrice)
             .HasColumnType("decimal(18,2)");
 

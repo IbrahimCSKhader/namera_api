@@ -35,6 +35,37 @@ public sealed class OrderServiceTests
     }
 
     [Fact]
+    public async Task CreateOrderAsync_StoresCustomizationSnapshot()
+    {
+        var fixture = await CreateFixtureAsync();
+        var product = await SeedProductAsync(fixture.DbContext, quantity: 5);
+        var (group, value, field) = await SeedCustomizationAsync(fixture.DbContext, product.Id);
+
+        var response = await fixture.Service.CreateOrderAsync(fixture.CustomerPrincipal, new CreateOrderRequestDto
+        {
+            Items =
+            [
+                new CreateOrderItemRequestDto
+                {
+                    ProductId = product.Id,
+                    Quantity = 1,
+                    SelectedOptions = [new CreateOrderSelectedOptionDto { GroupId = group.Id, ValueId = value.Id }],
+                    CustomFields = [new CreateOrderCustomFieldDto { FieldId = field.Id, Value = "Mayar" }],
+                    CustomRequest = "هادئ وناعم"
+                }
+            ]
+        });
+
+        Assert.True(response.Success);
+        var item = Assert.Single(response.Data!.Items);
+        Assert.Equal(65, item.UnitPrice);
+        Assert.Contains("اللون: ذهبي", item.CustomizationSummary, StringComparison.Ordinal);
+        Assert.Contains("الاسم: Mayar", item.CustomizationSummary, StringComparison.Ordinal);
+        Assert.Contains("طلب خاص: هادئ وناعم", item.CustomizationSummary, StringComparison.Ordinal);
+        Assert.Contains("\"type\":\"option\"", item.CustomizationDetailsJson, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task UpdateOrderStatusAsync_Approved_DeductsStockOnce()
     {
         var fixture = await CreateFixtureAsync();
@@ -185,6 +216,46 @@ public sealed class OrderServiceTests
         await dbContext.SaveChangesAsync();
 
         return product;
+    }
+
+    private static async Task<(ProductOptionGroup Group, ProductOptionValue Value, ProductCustomizationField Field)> SeedCustomizationAsync(AppDbContext dbContext, Guid productId)
+    {
+        var group = new ProductOptionGroup
+        {
+            Id = Guid.NewGuid(),
+            ProductId = productId,
+            Name = "اللون",
+            IsRequired = true,
+            IsActive = true,
+            DisplayOrder = 1
+        };
+        var value = new ProductOptionValue
+        {
+            Id = Guid.NewGuid(),
+            ProductOptionGroupId = group.Id,
+            Label = "ذهبي",
+            ExtraPrice = 10,
+            IsActive = true,
+            DisplayOrder = 1
+        };
+        var field = new ProductCustomizationField
+        {
+            Id = Guid.NewGuid(),
+            ProductId = productId,
+            Label = "الاسم",
+            FieldType = ProductCustomizationFieldType.ShortText,
+            IsRequired = true,
+            IsActive = true,
+            AdditionalPrice = 5,
+            DisplayOrder = 1
+        };
+
+        dbContext.ProductOptionGroups.Add(group);
+        dbContext.ProductOptionValues.Add(value);
+        dbContext.ProductCustomizationFields.Add(field);
+        await dbContext.SaveChangesAsync();
+
+        return (group, value, field);
     }
 
     private sealed record TestFixture(AppDbContext DbContext, OrderService Service, ClaimsPrincipal CustomerPrincipal);

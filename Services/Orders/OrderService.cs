@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using namera_API.Common.Responses;
@@ -33,11 +34,13 @@ public sealed class OrderService : IOrderService
 
         var normalizedItems = request.Items
             .Where(item => item.ProductId != Guid.Empty)
-            .GroupBy(item => item.ProductId)
-            .Select(group => new CreateOrderItemRequestDto
+            .Select(item => new CreateOrderItemRequestDto
             {
-                ProductId = group.Key,
-                Quantity = group.Sum(item => item.Quantity)
+                ProductId = item.ProductId,
+                Quantity = item.Quantity,
+                SelectedOptions = item.SelectedOptions,
+                CustomFields = item.CustomFields,
+                CustomRequest = item.CustomRequest
             })
             .ToList();
 
@@ -55,6 +58,10 @@ public sealed class OrderService : IOrderService
         var products = await _dbContext.Products
             .Include(product => product.Category)
             .Include(product => product.Images)
+            .Include(product => product.OptionGroups)
+                .ThenInclude(group => group.Values)
+            .Include(product => product.CustomizationFields)
+                .ThenInclude(field => field.Choices)
             .Where(product => productIds.Contains(product.Id))
             .ToListAsync();
 
@@ -62,6 +69,15 @@ public sealed class OrderService : IOrderService
         if (errors.Count > 0)
         {
             return ApiResponse<OrderResponseDto>.Fail("راجع المنتجات قبل إرسال الطلب", errors);
+        }
+
+        var customizationSnapshots = normalizedItems
+            .Select(item => BuildCustomizationSnapshot(item, products.Single(product => product.Id == item.ProductId)))
+            .ToList();
+        var customizationErrors = customizationSnapshots.SelectMany(snapshot => snapshot.Errors).ToList();
+        if (customizationErrors.Count > 0)
+        {
+            return ApiResponse<OrderResponseDto>.Fail("راجع تخصيصات المنتجات قبل إرسال الطلب", customizationErrors);
         }
 
         var order = new Order
@@ -79,14 +95,16 @@ public sealed class OrderService : IOrderService
 
         order.OrderNumber = await CreateOrderNumberAsync(order.CreatedAt);
 
-        foreach (var item in normalizedItems)
+        for (var index = 0; index < normalizedItems.Count; index += 1)
         {
+            var item = normalizedItems[index];
+            var customization = customizationSnapshots[index];
             var product = products.Single(product => product.Id == item.ProductId);
             var primaryImage = product.Images
                 .OrderByDescending(image => image.IsPrimary)
                 .ThenBy(image => image.DisplayOrder)
                 .FirstOrDefault();
-            var unitPrice = product.PricingType == ProductPricingType.Quote ? 0 : product.BasePrice;
+            var unitPrice = (product.PricingType == ProductPricingType.Quote ? 0 : product.BasePrice) + customization.ExtraPrice;
 
             order.Items.Add(new OrderItem
             {
@@ -99,6 +117,8 @@ public sealed class OrderService : IOrderService
                 Quantity = item.Quantity,
                 UnitPrice = unitPrice,
                 LineTotal = unitPrice * item.Quantity,
+                CustomizationSummary = customization.Summary,
+                CustomizationDetailsJson = customization.DetailsJson,
                 CreatedAt = DateTime.UtcNow
             });
         }
@@ -348,18 +368,168 @@ public sealed class OrderService : IOrderService
                 errors.Add($"المنتج {product.Name} لا يقبل الطلبات حاليا.");
             }
 
+            if (item.Quantity < product.MinimumQuantity)
+            {
+                errors.Add($"أقل كمية من {product.Name} هي {product.MinimumQuantity}.");
+            }
+
+            if (product.MaximumQuantity.HasValue && item.Quantity > product.MaximumQuantity.Value)
+            {
+                errors.Add($"أعلى كمية من {product.Name} هي {product.MaximumQuantity.Value}.");
+            }
+
             if (product.DirectAccessOnly)
             {
                 errors.Add($"المنتج {product.Name} غير ظاهر للطلبات العامة.");
             }
 
-            if (product.InventoryTrackingEnabled && !product.MadeToOrder && product.Quantity.HasValue && product.Quantity.Value < item.Quantity)
+            var totalRequestedQuantity = requestItems
+                .Where(requestItem => requestItem.ProductId == product.Id)
+                .Sum(requestItem => requestItem.Quantity);
+            var isFirstRequestForProduct = requestItems.TakeWhile(requestItem => requestItem != item).All(requestItem => requestItem.ProductId != product.Id);
+
+            if (isFirstRequestForProduct && product.InventoryTrackingEnabled && !product.MadeToOrder && product.Quantity.HasValue && product.Quantity.Value < totalRequestedQuantity)
             {
                 errors.Add($"الكمية المتوفرة من {product.Name} لا تكفي الطلب.");
             }
         }
 
         return errors;
+    }
+
+    private static OrderItemCustomizationSnapshot BuildCustomizationSnapshot(CreateOrderItemRequestDto requestItem, Product product)
+    {
+        var errors = new List<string>();
+        var summaryParts = new List<string>();
+        var detailItems = new List<OrderItemCustomizationDetail>();
+        var extraPrice = 0m;
+        var selectedOptions = requestItem.SelectedOptions
+            .Where(option => option.GroupId != Guid.Empty && option.ValueId != Guid.Empty)
+            .ToList();
+        var selectedOptionGroupIds = selectedOptions.Select(option => option.GroupId).ToHashSet();
+
+        foreach (var duplicateGroup in selectedOptions.GroupBy(option => option.GroupId).Where(group => group.Count() > 1))
+        {
+            var groupName = product.OptionGroups.FirstOrDefault(group => group.Id == duplicateGroup.Key)?.Name ?? "أحد الخيارات";
+            errors.Add($"لا يمكن اختيار أكثر من قيمة داخل {groupName} للمنتج {product.Name}.");
+        }
+
+        foreach (var option in selectedOptions)
+        {
+            var group = product.OptionGroups.FirstOrDefault(item => item.Id == option.GroupId && item.IsActive);
+            if (group is null)
+            {
+                errors.Add($"خيار غير معروف للمنتج {product.Name}.");
+                continue;
+            }
+
+            var value = group.Values.FirstOrDefault(item => item.Id == option.ValueId && item.IsActive);
+            if (value is null)
+            {
+                errors.Add($"قيمة غير معروفة داخل خيار {group.Name} للمنتج {product.Name}.");
+                continue;
+            }
+
+            extraPrice += value.ExtraPrice;
+            summaryParts.Add($"{group.Name}: {value.Label}");
+            detailItems.Add(new OrderItemCustomizationDetail("option", group.Id, group.Name, value.Id, value.Label, value.ExtraPrice));
+        }
+
+        foreach (var group in product.OptionGroups.Where(group => group.IsActive && group.IsRequired))
+        {
+            if (!selectedOptionGroupIds.Contains(group.Id))
+            {
+                errors.Add($"الخيار {group.Name} مطلوب للمنتج {product.Name}.");
+            }
+        }
+
+        foreach (var requestField in requestItem.CustomFields.Where(field => field.FieldId != Guid.Empty))
+        {
+            var field = product.CustomizationFields.FirstOrDefault(item => item.Id == requestField.FieldId && item.IsActive);
+            if (field is null)
+            {
+                errors.Add($"حقل تخصيص غير معروف للمنتج {product.Name}.");
+                continue;
+            }
+
+            var normalizedValue = NormalizeNullableText(requestField.Value) ?? string.Empty;
+            var selectedChoices = field.Choices
+                .Where(choice => choice.IsActive && requestField.SelectedChoiceIds.Contains(choice.Id))
+                .ToList();
+            var hasValue = !string.IsNullOrWhiteSpace(normalizedValue) || selectedChoices.Count > 0;
+
+            if (!hasValue)
+            {
+                continue;
+            }
+
+            if (field.MinLength.HasValue && normalizedValue.Length > 0 && normalizedValue.Length < field.MinLength.Value)
+            {
+                errors.Add($"قيمة {field.Label} أقصر من المطلوب.");
+            }
+
+            if (field.MaxLength.HasValue && normalizedValue.Length > field.MaxLength.Value)
+            {
+                errors.Add($"قيمة {field.Label} أطول من المسموح.");
+            }
+
+            if (field.MinValue.HasValue && decimal.TryParse(normalizedValue, out var minDecimalValue) && minDecimalValue < field.MinValue.Value)
+            {
+                errors.Add($"قيمة {field.Label} أقل من المسموح.");
+            }
+
+            if (field.MaxValue.HasValue && decimal.TryParse(normalizedValue, out var maxDecimalValue) && maxDecimalValue > field.MaxValue.Value)
+            {
+                errors.Add($"قيمة {field.Label} أكبر من المسموح.");
+            }
+
+            if (requestField.SelectedChoiceIds.Count > 0 && selectedChoices.Count != requestField.SelectedChoiceIds.Distinct().Count())
+            {
+                errors.Add($"أحد اختيارات {field.Label} غير معروف.");
+            }
+
+            var choicePrice = selectedChoices.Sum(choice => choice.AdditionalPrice);
+            var fieldPrice = field.AdditionalPrice + choicePrice;
+            var displayValue = selectedChoices.Count > 0
+                ? string.Join("، ", selectedChoices.Select(choice => choice.Label))
+                : field.FieldType == ProductCustomizationFieldType.Checkbox && normalizedValue.Equals("true", StringComparison.OrdinalIgnoreCase)
+                    ? "نعم"
+                    : normalizedValue;
+
+            extraPrice += fieldPrice;
+            summaryParts.Add($"{field.Label}: {displayValue}");
+            detailItems.Add(new OrderItemCustomizationDetail(
+                "field",
+                field.Id,
+                field.Label,
+                null,
+                displayValue,
+                fieldPrice));
+        }
+
+        foreach (var field in product.CustomizationFields.Where(field => field.IsActive && field.IsRequired))
+        {
+            var requestField = requestItem.CustomFields.FirstOrDefault(item => item.FieldId == field.Id);
+            var hasValue = requestField is not null &&
+                (!string.IsNullOrWhiteSpace(requestField.Value) || requestField.SelectedChoiceIds.Count > 0);
+
+            if (!hasValue)
+            {
+                errors.Add($"حقل {field.Label} مطلوب للمنتج {product.Name}.");
+            }
+        }
+
+        var customRequest = NormalizeNullableText(requestItem.CustomRequest);
+        if (!string.IsNullOrWhiteSpace(customRequest))
+        {
+            summaryParts.Add($"طلب خاص: {customRequest}");
+            detailItems.Add(new OrderItemCustomizationDetail("customRequest", Guid.Empty, "طلب خاص", null, customRequest, 0));
+        }
+
+        var summary = summaryParts.Count == 0 ? null : string.Join(" | ", summaryParts);
+        var detailsJson = detailItems.Count == 0 ? null : JsonSerializer.Serialize(detailItems, JsonOptions);
+
+        return new OrderItemCustomizationSnapshot(extraPrice, summary, detailsJson, errors);
     }
 
     private async Task<List<string>> DeductStockAsync(Order order)
@@ -487,6 +657,22 @@ public sealed class OrderService : IOrderService
         "rejected"
     ];
 
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    private sealed record OrderItemCustomizationSnapshot(
+        decimal ExtraPrice,
+        string? Summary,
+        string? DetailsJson,
+        IReadOnlyList<string> Errors);
+
+    private sealed record OrderItemCustomizationDetail(
+        string Type,
+        Guid SourceId,
+        string Label,
+        Guid? ValueId,
+        string Value,
+        decimal ExtraPrice);
+
     private static OrderResponseDto ToOrderDto(Order order)
     {
         return new OrderResponseDto
@@ -519,7 +705,9 @@ public sealed class OrderService : IOrderService
                 ImageUrl = item.ImageUrl ?? string.Empty,
                 Quantity = item.Quantity,
                 UnitPrice = item.UnitPrice,
-                LineTotal = item.LineTotal
+                LineTotal = item.LineTotal,
+                CustomizationSummary = item.CustomizationSummary ?? string.Empty,
+                CustomizationDetailsJson = item.CustomizationDetailsJson ?? string.Empty
             }).ToList()
         };
     }

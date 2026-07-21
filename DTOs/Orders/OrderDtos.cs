@@ -11,6 +11,22 @@ public sealed class CreateOrderItemRequestDto
 {
     public Guid ProductId { get; init; }
     public int Quantity { get; init; } = 1;
+    public IReadOnlyList<CreateOrderSelectedOptionDto> SelectedOptions { get; init; } = [];
+    public IReadOnlyList<CreateOrderCustomFieldDto> CustomFields { get; init; } = [];
+    public string? CustomRequest { get; init; }
+}
+
+public sealed class CreateOrderSelectedOptionDto
+{
+    public Guid GroupId { get; init; }
+    public Guid ValueId { get; init; }
+}
+
+public sealed class CreateOrderCustomFieldDto
+{
+    public Guid FieldId { get; init; }
+    public string? Value { get; init; }
+    public IReadOnlyList<Guid> SelectedChoiceIds { get; init; } = [];
 }
 
 public sealed class UpdateOrderStatusRequestDto
@@ -59,6 +75,8 @@ public sealed class OrderItemResponseDto
     public int Quantity { get; init; }
     public decimal UnitPrice { get; init; }
     public decimal LineTotal { get; init; }
+    public string CustomizationSummary { get; init; } = string.Empty;
+    public string CustomizationDetailsJson { get; init; } = string.Empty;
 }
 
 public sealed class OwnerCustomerResponseDto
