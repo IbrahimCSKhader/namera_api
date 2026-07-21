@@ -35,6 +35,16 @@ Required local settings:
 - `Jwt:SecretKey`
 - `Jwt:ExpirationMinutes`
 - `Cors:AllowedOrigins`
+- `Email:Smtp:Host`
+- `Email:Smtp:Port`
+- `Email:Smtp:EnableSsl`
+- `Email:Smtp:UserName`
+- `Email:Smtp:Password`
+- `Email:Smtp:FromEmail`
+- `Email:Smtp:FromName`
+- `Email:Smtp:FrontendBaseUrl`
+
+For Gmail SMTP, use `smtp.gmail.com`, port `587`, SSL enabled, the full Gmail address as the username, and a Google App Password as the password.
 
 Run the API:
 
