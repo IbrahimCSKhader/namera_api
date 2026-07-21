@@ -190,20 +190,6 @@ public sealed class OrderService : IOrderService
             return ApiResponse<OrderResponseDto>.Fail("حالة الطلب غير معروفة");
         }
 
-        if (ShouldDeductStock(nextStatus) && order.StockDeductedAt is null)
-        {
-            var deductionErrors = await DeductStockAsync(order);
-            if (deductionErrors.Count > 0)
-            {
-                return ApiResponse<OrderResponseDto>.Fail("لا يمكن اعتماد الطلب قبل توفر الكمية", deductionErrors);
-            }
-        }
-
-        if (ShouldRestoreStock(nextStatus) && order.StockDeductedAt is not null)
-        {
-            await RestoreStockAsync(order);
-        }
-
         order.Status = nextStatus;
         order.OwnerNote = NormalizeNullableText(request.OwnerNote);
         order.UpdatedAt = DateTime.UtcNow;
@@ -383,15 +369,6 @@ public sealed class OrderService : IOrderService
                 errors.Add($"المنتج {product.Name} غير ظاهر للطلبات العامة.");
             }
 
-            var totalRequestedQuantity = requestItems
-                .Where(requestItem => requestItem.ProductId == product.Id)
-                .Sum(requestItem => requestItem.Quantity);
-            var isFirstRequestForProduct = requestItems.TakeWhile(requestItem => requestItem != item).All(requestItem => requestItem.ProductId != product.Id);
-
-            if (isFirstRequestForProduct && product.InventoryTrackingEnabled && !product.MadeToOrder && product.Quantity.HasValue && product.Quantity.Value < totalRequestedQuantity)
-            {
-                errors.Add($"الكمية المتوفرة من {product.Name} لا تكفي الطلب.");
-            }
         }
 
         return errors;
@@ -532,72 +509,6 @@ public sealed class OrderService : IOrderService
         return new OrderItemCustomizationSnapshot(extraPrice, summary, detailsJson, errors);
     }
 
-    private async Task<List<string>> DeductStockAsync(Order order)
-    {
-        var errors = new List<string>();
-        var productIds = order.Items.Select(item => item.ProductId).Distinct().ToList();
-        var products = await _dbContext.Products
-            .Where(product => productIds.Contains(product.Id))
-            .ToListAsync();
-
-        foreach (var itemGroup in order.Items.GroupBy(item => item.ProductId))
-        {
-            var product = products.Single(product => product.Id == itemGroup.Key);
-            if (!product.InventoryTrackingEnabled || product.MadeToOrder)
-            {
-                continue;
-            }
-
-            var requiredQuantity = itemGroup.Sum(item => item.Quantity);
-            if ((product.Quantity ?? 0) < requiredQuantity)
-            {
-                errors.Add($"الكمية المتوفرة من {product.Name} لا تكفي لاعتماد الطلب.");
-            }
-        }
-
-        if (errors.Count > 0)
-        {
-            return errors;
-        }
-
-        foreach (var itemGroup in order.Items.GroupBy(item => item.ProductId))
-        {
-            var product = products.Single(product => product.Id == itemGroup.Key);
-            if (!product.InventoryTrackingEnabled || product.MadeToOrder)
-            {
-                continue;
-            }
-
-            product.Quantity = (product.Quantity ?? 0) - itemGroup.Sum(item => item.Quantity);
-            product.UpdatedAt = DateTime.UtcNow;
-        }
-
-        order.StockDeductedAt = DateTime.UtcNow;
-        return errors;
-    }
-
-    private async Task RestoreStockAsync(Order order)
-    {
-        var productIds = order.Items.Select(item => item.ProductId).Distinct().ToList();
-        var products = await _dbContext.Products
-            .Where(product => productIds.Contains(product.Id))
-            .ToListAsync();
-
-        foreach (var itemGroup in order.Items.GroupBy(item => item.ProductId))
-        {
-            var product = products.Single(product => product.Id == itemGroup.Key);
-            if (!product.InventoryTrackingEnabled || product.MadeToOrder)
-            {
-                continue;
-            }
-
-            product.Quantity = (product.Quantity ?? 0) + itemGroup.Sum(item => item.Quantity);
-            product.UpdatedAt = DateTime.UtcNow;
-        }
-
-        order.StockDeductedAt = null;
-    }
-
     private async Task<string> CreateOrderNumberAsync(DateTime createdAt)
     {
         var datePart = createdAt.ToString("yyyyMMdd");
@@ -611,16 +522,6 @@ public sealed class OrderService : IOrderService
         }
 
         return orderNumber;
-    }
-
-    private static bool ShouldDeductStock(OrderStatus status)
-    {
-        return status is OrderStatus.Approved or OrderStatus.Received or OrderStatus.Preparing or OrderStatus.Ready or OrderStatus.Shipped or OrderStatus.Completed;
-    }
-
-    private static bool ShouldRestoreStock(OrderStatus status)
-    {
-        return status is OrderStatus.Cancelled or OrderStatus.Rejected;
     }
 
     private static bool TryParseStatus(string value, out OrderStatus status)

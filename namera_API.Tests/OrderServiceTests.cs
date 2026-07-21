@@ -66,7 +66,7 @@ public sealed class OrderServiceTests
     }
 
     [Fact]
-    public async Task UpdateOrderStatusAsync_Approved_DeductsStockOnce()
+    public async Task UpdateOrderStatusAsync_Approved_DoesNotDeductStock()
     {
         var fixture = await CreateFixtureAsync();
         var product = await SeedProductAsync(fixture.DbContext, quantity: 5);
@@ -80,12 +80,12 @@ public sealed class OrderServiceTests
 
         Assert.True(approved.Success);
         Assert.True(approvedAgain.Success);
-        Assert.True(approvedAgain.Data!.StockDeducted);
-        Assert.Equal(3, (await fixture.DbContext.Products.FindAsync(product.Id))!.Quantity);
+        Assert.False(approvedAgain.Data!.StockDeducted);
+        Assert.Equal(5, (await fixture.DbContext.Products.FindAsync(product.Id))!.Quantity);
     }
 
     [Fact]
-    public async Task UpdateOrderStatusAsync_CancelledAfterApproval_RestoresStock()
+    public async Task UpdateOrderStatusAsync_CancelledAfterApproval_LeavesStockUnchanged()
     {
         var fixture = await CreateFixtureAsync();
         var product = await SeedProductAsync(fixture.DbContext, quantity: 5);
