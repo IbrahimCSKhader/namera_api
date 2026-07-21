@@ -93,6 +93,30 @@ public sealed class CustomerServiceTests
     }
 
     [Fact]
+    public async Task SaveReviewAsync_GuestReview_StoresContactDetails()
+    {
+        var fixture = await CreateFixtureAsync();
+        var product = await SeedProductAsync(fixture.DbContext);
+
+        var created = await fixture.Service.SaveReviewAsync(new ClaimsPrincipal(), new CustomerReviewRequestDto
+        {
+            ProductId = product.Id,
+            Rating = 0,
+            Comment = "Guest note",
+            CustomerName = "Guest Customer",
+            CustomerPhoneNumber = "0591234567"
+        });
+
+        Assert.True(created.Success);
+        Assert.Equal(0, created.Data!.Rating);
+
+        var review = await fixture.DbContext.ProductReviews.SingleAsync(item => item.Id == created.Data.Id);
+        Assert.Null(review.CustomerId);
+        Assert.Equal("Guest Customer", review.GuestName);
+        Assert.Equal("0591234567", review.GuestPhoneNumber);
+    }
+
+    [Fact]
     public async Task GetDashboardAsync_ReturnsCustomerCounters()
     {
         var fixture = await CreateFixtureAsync();

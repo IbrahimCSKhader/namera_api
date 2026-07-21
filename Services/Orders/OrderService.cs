@@ -36,7 +36,8 @@ public sealed class OrderService : IOrderService
                 Quantity = item.Quantity,
                 SelectedOptions = item.SelectedOptions,
                 CustomFields = item.CustomFields,
-                CustomRequest = item.CustomRequest
+                CustomRequest = item.CustomRequest,
+                CustomRequestItems = item.CustomRequestItems
             })
             .ToList();
 
@@ -543,6 +544,24 @@ public sealed class OrderService : IOrderService
         {
             summaryParts.Add($"طلب خاص: {customRequest}");
             detailItems.Add(new OrderItemCustomizationDetail("customRequest", Guid.Empty, "طلب خاص", null, customRequest, 0));
+        }
+
+        foreach (var request in requestItem.CustomRequestItems)
+        {
+            var text = NormalizeNullableText(request.Text);
+            var imageUrl = NormalizeNullableText(request.ImageUrl);
+            if (string.IsNullOrWhiteSpace(text) && string.IsNullOrWhiteSpace(imageUrl))
+            {
+                continue;
+            }
+
+            var value = string.IsNullOrWhiteSpace(imageUrl)
+                ? text!
+                : string.IsNullOrWhiteSpace(text)
+                    ? $"صورة مرفقة: {imageUrl}"
+                    : $"{text} | صورة: {imageUrl}";
+            summaryParts.Add($"طلب خاص: {value}");
+            detailItems.Add(new OrderItemCustomizationDetail("customRequestItem", Guid.Empty, "طلب خاص", null, value, 0));
         }
 
         var summary = summaryParts.Count == 0 ? null : string.Join(" | ", summaryParts);

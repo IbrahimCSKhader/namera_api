@@ -16,6 +16,18 @@ public sealed class CreateOrderItemRequestDto
     public IReadOnlyList<CreateOrderSelectedOptionDto> SelectedOptions { get; init; } = [];
     public IReadOnlyList<CreateOrderCustomFieldDto> CustomFields { get; init; } = [];
     public string? CustomRequest { get; init; }
+    public IReadOnlyList<CreateOrderCustomRequestItemDto> CustomRequestItems { get; init; } = [];
+}
+
+public sealed class CreateOrderCustomRequestItemDto
+{
+    public string? Text { get; init; }
+    public string? ImageUrl { get; init; }
+}
+
+public sealed class UploadOrderCustomizationImageRequestDto
+{
+    public IFormFile? File { get; init; }
 }
 
 public sealed class CreateOrderSelectedOptionDto

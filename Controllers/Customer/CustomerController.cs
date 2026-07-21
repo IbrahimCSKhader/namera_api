@@ -91,6 +91,7 @@ public sealed class CustomerController : ControllerBase
     }
 
     [HttpPost("reviews")]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<CustomerReviewResponseDto>>> SaveReview(CustomerReviewRequestDto request)
     {
         if (!ModelState.IsValid)

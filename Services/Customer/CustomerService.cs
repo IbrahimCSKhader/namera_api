@@ -256,9 +256,11 @@ public sealed class CustomerService : ICustomerService
     {
         var user = await GetUserAsync(principal);
 
-        if (user is null)
+        var guestName = NormalizeNullableText(request.CustomerName);
+        var guestPhoneNumber = NormalizeNullableText(request.CustomerPhoneNumber);
+        if (user is null && (string.IsNullOrWhiteSpace(guestName) || string.IsNullOrWhiteSpace(guestPhoneNumber)))
         {
-            return ApiResponse<CustomerReviewResponseDto>.Fail("المستخدم غير موجود", ["تعذر العثور على حساب العميل"]);
+            return ApiResponse<CustomerReviewResponseDto>.Fail("أكمل معلومات التقييم", ["اسم الزبون ورقم الهاتف مطلوبان لإرسال تقييم بدون حساب"]);
         }
 
         var product = await _dbContext.Products
@@ -276,21 +278,25 @@ public sealed class CustomerService : ICustomerService
             return ApiResponse<CustomerReviewResponseDto>.Fail("لا يمكن تقييم هذا المنتج", ["المنتج غير متاح للتقييم حالياً"]);
         }
 
-        var review = await _dbContext.ProductReviews
-            .Include(item => item.Product)
-                .ThenInclude(item => item.Images)
-            .FirstOrDefaultAsync(item => item.CustomerId == user.Id && item.ProductId == request.ProductId);
+        var review = user is null
+            ? null
+            : await _dbContext.ProductReviews
+                .Include(item => item.Product)
+                    .ThenInclude(item => item.Images)
+                .FirstOrDefaultAsync(item => item.CustomerId == user.Id && item.ProductId == request.ProductId);
 
         if (review is null)
         {
             review = new ProductReview
             {
                 Id = Guid.NewGuid(),
-                CustomerId = user.Id,
+                CustomerId = user?.Id,
                 ProductId = product.Id,
                 Product = product,
                 Rating = request.Rating,
-                Comment = request.Comment.Trim()
+                Comment = request.Comment.Trim(),
+                GuestName = user is null ? guestName : null,
+                GuestPhoneNumber = user is null ? guestPhoneNumber : null
             };
             _dbContext.ProductReviews.Add(review);
         }
@@ -399,6 +405,12 @@ public sealed class CustomerService : ICustomerService
             CreatedAt = review.CreatedAt,
             UpdatedAt = review.UpdatedAt
         };
+    }
+
+    private static string? NormalizeNullableText(string? value)
+    {
+        var normalized = string.Join(' ', (value ?? string.Empty).Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
     }
 
     private static string GetStatusLabel(OrderStatus status)

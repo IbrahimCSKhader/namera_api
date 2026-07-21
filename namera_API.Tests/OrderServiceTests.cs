@@ -51,7 +51,15 @@ public sealed class OrderServiceTests
                     Quantity = 1,
                     SelectedOptions = [new CreateOrderSelectedOptionDto { GroupId = group.Id, ValueId = value.Id }],
                     CustomFields = [new CreateOrderCustomFieldDto { FieldId = field.Id, Value = "Mayar" }],
-                    CustomRequest = "هادئ وناعم"
+                    CustomRequest = "هادئ وناعم",
+                    CustomRequestItems =
+                    [
+                        new CreateOrderCustomRequestItemDto
+                        {
+                            Text = "Reference color",
+                            ImageUrl = "/uploads/order-customizations/reference.webp"
+                        }
+                    ]
                 }
             ]
         });
@@ -62,7 +70,9 @@ public sealed class OrderServiceTests
         Assert.Contains("اللون: ذهبي", item.CustomizationSummary, StringComparison.Ordinal);
         Assert.Contains("الاسم: Mayar", item.CustomizationSummary, StringComparison.Ordinal);
         Assert.Contains("طلب خاص: هادئ وناعم", item.CustomizationSummary, StringComparison.Ordinal);
+        Assert.Contains("Reference color", item.CustomizationSummary, StringComparison.Ordinal);
         Assert.Contains("\"type\":\"option\"", item.CustomizationDetailsJson, StringComparison.Ordinal);
+        Assert.Contains("\"type\":\"customRequestItem\"", item.CustomizationDetailsJson, StringComparison.Ordinal);
     }
 
     [Fact]

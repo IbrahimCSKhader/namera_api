@@ -62,12 +62,18 @@ public sealed class CustomerReviewRequestDto
     [Required(ErrorMessage = "المنتج مطلوب")]
     public Guid ProductId { get; init; }
 
-    [Range(1, 5, ErrorMessage = "التقييم يجب أن يكون بين 1 و 5")]
+    [Range(0, 6, ErrorMessage = "التقييم يجب أن يكون بين 0 و 6")]
     public int Rating { get; init; }
 
     [Required(ErrorMessage = "نص التقييم مطلوب")]
     [MaxLength(1000, ErrorMessage = "نص التقييم طويل")]
     public string Comment { get; init; } = string.Empty;
+
+    [MaxLength(180, ErrorMessage = "اسم الزبون طويل")]
+    public string? CustomerName { get; init; }
+
+    [MaxLength(30, ErrorMessage = "رقم الهاتف طويل")]
+    public string? CustomerPhoneNumber { get; init; }
 }
 
 public sealed class CustomerReviewResponseDto

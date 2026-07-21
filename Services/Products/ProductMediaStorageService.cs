@@ -32,6 +32,11 @@ public sealed class ProductMediaStorageService : IProductMediaStorageService
         return SaveImageAsync(file, ["uploads", "categories", categoryId.ToString("N"), "cover"], cancellationToken);
     }
 
+    public Task<ApiResponse<UploadedMediaDto>> SaveOrderCustomizationImageAsync(IFormFile? file, CancellationToken cancellationToken = default)
+    {
+        return SaveImageAsync(file, ["uploads", "order-customizations", DateTime.UtcNow.ToString("yyyyMMdd")], cancellationToken);
+    }
+
     private async Task<ApiResponse<UploadedMediaDto>> SaveImageAsync(IFormFile? file, IReadOnlyList<string> relativeSegments, CancellationToken cancellationToken)
     {
         var errors = ValidateFile(file);

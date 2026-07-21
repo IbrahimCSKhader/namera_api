@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using namera_API.Common.Responses;
 using namera_API.Constants.Identity;
 using namera_API.DTOs.Orders;
+using namera_API.DTOs.Products;
 using namera_API.Services.Orders;
+using namera_API.Services.Products;
 
 namespace namera_API.Controllers.Orders;
 
@@ -13,10 +15,12 @@ namespace namera_API.Controllers.Orders;
 public sealed class CustomerOrdersController : ControllerBase
 {
     private readonly IOrderService _orderService;
+    private readonly IProductMediaStorageService _productMediaStorageService;
 
-    public CustomerOrdersController(IOrderService orderService)
+    public CustomerOrdersController(IOrderService orderService, IProductMediaStorageService productMediaStorageService)
     {
         _orderService = orderService;
+        _productMediaStorageService = productMediaStorageService;
     }
 
     [HttpGet]
@@ -31,6 +35,15 @@ public sealed class CustomerOrdersController : ControllerBase
     public async Task<ActionResult<ApiResponse<OrderResponseDto>>> CreateOrder(CreateOrderRequestDto request)
     {
         var response = await _orderService.CreateOrderAsync(User, request);
+        return response.Success ? Ok(response) : BadRequest(response);
+    }
+
+    [HttpPost("uploads/customization-image")]
+    [AllowAnonymous]
+    [RequestSizeLimit(8 * 1024 * 1024)]
+    public async Task<ActionResult<ApiResponse<UploadedMediaDto>>> UploadCustomizationImage([FromForm] UploadOrderCustomizationImageRequestDto request)
+    {
+        var response = await _productMediaStorageService.SaveOrderCustomizationImageAsync(request.File, HttpContext.RequestAborted);
         return response.Success ? Ok(response) : BadRequest(response);
     }
 }
